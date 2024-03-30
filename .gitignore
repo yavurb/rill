@@ -1,2 +1,5 @@
 .vscode
-rill
+
+# Environments
+.env
+.env.*
