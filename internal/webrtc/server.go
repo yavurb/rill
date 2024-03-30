@@ -16,7 +16,18 @@ var (
 	PeerConnections []*webrtc.PeerConnection
 )
 
-func HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan chan string, localTrackChan chan *webrtc.TrackLocalStaticRTP) {
+type BroadcasterSession struct {
+	ID    string
+	Track *webrtc.TrackLocalStaticRTP
+}
+
+var (
+	CurrentSession = &BroadcasterSession{
+		ID: "some",
+	}
+)
+
+func HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan chan string) {
 	// Everything below is the Pion WebRTC API, thanks for using it ❤️.
 	offer := webrtc.SessionDescription{}
 	signal.Decode(<-broadcasterSDPChan, &offer)
@@ -128,7 +139,7 @@ func HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan cha
 	fmt.Print("Paste this SDP in your browser console:\n")
 	broadcasterLocalSDPChan <- fmt.Sprint(signal.Encode(*peerConnection.LocalDescription()))
 
-	localTrackChan <- (<-internalLocalTrackChan)
+	CurrentSession.Track = (<-internalLocalTrackChan)
 
 	PeerConnections = append(PeerConnections, peerConnection)
 
@@ -137,8 +148,8 @@ func HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan cha
 	<-done
 }
 
-func HandleViewer(viewerSDPChan, viewerLocalSDPChan chan string, localTrackChan chan *webrtc.TrackLocalStaticRTP) {
-	localTrack := <-localTrackChan
+func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewerLocalSDPChan chan string) {
+	localTrack := track
 
 	fmt.Println("Local track available...")
 
@@ -152,62 +163,64 @@ func HandleViewer(viewerSDPChan, viewerLocalSDPChan chan string, localTrackChan 
 
 	fmt.Printf("I'm passign through here")
 
-	for {
-		recvOnlyOffer := webrtc.SessionDescription{}
-		signal.Decode(<-viewerSDPChan, &recvOnlyOffer)
+	recvOnlyOffer := webrtc.SessionDescription{}
+	signal.Decode(viewerSDPChan, &recvOnlyOffer)
 
-		// Create a new PeerConnection
-		peerConnection, err := webrtc.NewPeerConnection(peerConnectionConfig)
-		if err != nil {
-			panic(err)
-		}
-
-		rtpSender, err := peerConnection.AddTrack(localTrack)
-		if err != nil {
-			panic(err)
-		}
-
-		// Read incoming RTCP packets
-		// Before these packets are returned they are processed by interceptors. For things
-		// like NACK this needs to be called.
-		go func() {
-			rtcpBuf := make([]byte, 1500)
-			for {
-				if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
-					return
-				}
-			}
-		}()
-
-		// Set the remote SessionDescription
-		err = peerConnection.SetRemoteDescription(recvOnlyOffer)
-		if err != nil {
-			panic(err)
-		}
-
-		// Create answer
-		answer, err := peerConnection.CreateAnswer(nil)
-		if err != nil {
-			panic(err)
-		}
-
-		// Create channel that is blocked until ICE Gathering is complete
-		gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
-
-		// Sets the LocalDescription, and starts our UDP listeners
-		err = peerConnection.SetLocalDescription(answer)
-		if err != nil {
-			panic(err)
-		}
-
-		// Block until ICE Gathering is complete, disabling trickle ICE
-		// we do this because we only can exchange one signaling message
-		// in a production application you should exchange ICE Candidates via OnICECandidate
-		<-gatherComplete
-
-		// Get the LocalDescription and take it to base64 so we can paste in browser
-		viewerLocalSDPChan <- fmt.Sprint(signal.Encode(*peerConnection.LocalDescription()))
+	// Create a new PeerConnection
+	peerConnection, err := webrtc.NewPeerConnection(peerConnectionConfig)
+	if err != nil {
+		panic(err)
 	}
+
+	rtpSender, err := peerConnection.AddTrack(localTrack)
+	if err != nil {
+		panic(err)
+	}
+
+	// Read incoming RTCP packets
+	// Before these packets are returned they are processed by interceptors. For things
+	// like NACK this needs to be called.
+	go func() {
+		rtcpBuf := make([]byte, 1500)
+		for {
+			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+				return
+			}
+		}
+	}()
+
+	// Set the remote SessionDescription
+	err = peerConnection.SetRemoteDescription(recvOnlyOffer)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create answer
+	answer, err := peerConnection.CreateAnswer(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create channel that is blocked until ICE Gathering is complete
+	gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
+
+	// Sets the LocalDescription, and starts our UDP listeners
+	err = peerConnection.SetLocalDescription(answer)
+	if err != nil {
+		panic(err)
+	}
+
+	// Block until ICE Gathering is complete, disabling trickle ICE
+	// we do this because we only can exchange one signaling message
+	// in a production application you should exchange ICE Candidates via OnICECandidate
+	<-gatherComplete
+
+	// Get the LocalDescription and take it to base64 so we can paste in browser
+	viewerLocalSDPChan <- fmt.Sprint(signal.Encode(*peerConnection.LocalDescription()))
+
+	done := make(chan bool)
+	<-done
+
 }
 
 func NewWebRTCServer() { // nolint:gocognit

@@ -22,11 +22,9 @@ func main() {
 	localTrackChan := make(chan *webrtc.TrackLocalStaticRTP)
 	broadcasterSDPChan := make(chan string)
 	broadcasterLocalSDPChan := make(chan string)
-	viewerSDPChan := make(chan string)
 	viewerLocalSDPChan := make(chan string)
 
-	go lwebrtc.HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan, localTrackChan)
-	go lwebrtc.HandleViewer(viewerSDPChan, viewerLocalSDPChan, localTrackChan)
+	go lwebrtc.HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan)
 	// go test(viewerSDPChan, viewerLocalSDPChan)
 
 	e.POST("/broadcaster", func(c echo.Context) error {
@@ -46,8 +44,6 @@ func main() {
 		broadcasterSDPChan <- s.SDP
 
 		sdp := <-broadcasterLocalSDPChan
-
-		fmt.Printf("Got SDP, %s \n", sdp)
 
 		return c.JSON(http.StatusOK, response{SDP: sdp})
 	})
@@ -69,11 +65,16 @@ func main() {
 		fmt.Println("Init endpoint")
 		fmt.Printf("Trach Channel has %d data stored", len(localTrackChan))
 
-		viewerSDPChan <- s.SDP
+		if lwebrtc.CurrentSession.Track == nil {
+			return c.JSON(http.StatusBadRequest, echo.Map{
+				"error": "No broadcast available",
+			})
+		}
+
+		go lwebrtc.HandleViewer(s.SDP, lwebrtc.CurrentSession.Track, viewerLocalSDPChan)
 
 		select {
 		case sdp := <-viewerLocalSDPChan:
-			fmt.Printf("Got SDP, %s \n", sdp)
 			return c.JSON(http.StatusOK, response{SDP: sdp})
 		case <-time.After(time.Second * 10):
 			return c.JSON(http.StatusRequestTimeout, echo.Map{
@@ -84,12 +85,4 @@ func main() {
 	})
 
 	e.Logger.Fatal(e.Start(":8910"))
-}
-
-func test(viewerSDPChan, viewerLocalSDPChan chan string) {
-	remoteSDP := <-viewerSDPChan
-
-	fmt.Printf("testing... Got: %s", remoteSDP)
-
-	viewerLocalSDPChan <- "testing"
 }
