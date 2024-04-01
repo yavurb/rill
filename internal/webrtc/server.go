@@ -12,25 +12,10 @@ import (
 	"github.com/yavurb/rill/internal/signal"
 )
 
-var (
-	PeerConnections []*webrtc.PeerConnection
-)
-
-type BroadcasterSession struct {
-	ID    string
-	Track *webrtc.TrackLocalStaticRTP
-}
-
-var (
-	CurrentSession = &BroadcasterSession{
-		ID: "some",
-	}
-)
-
-func HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan chan string) {
+func HandleBroadcasterConnection(broadcasterSDPChan string, broadcastSession *BroadcasterSession, broadcasterLocalSDPChan chan string) {
 	// Everything below is the Pion WebRTC API, thanks for using it ❤️.
 	offer := webrtc.SessionDescription{}
-	signal.Decode(<-broadcasterSDPChan, &offer)
+	signal.Decode(broadcasterSDPChan, &offer)
 	fmt.Println("")
 
 	peerConnectionConfig := webrtc.Configuration{
@@ -139,9 +124,7 @@ func HandleBroadcasterConnection(broadcasterSDPChan, broadcasterLocalSDPChan cha
 	fmt.Print("Paste this SDP in your browser console:\n")
 	broadcasterLocalSDPChan <- fmt.Sprint(signal.Encode(*peerConnection.LocalDescription()))
 
-	CurrentSession.Track = (<-internalLocalTrackChan)
-
-	PeerConnections = append(PeerConnections, peerConnection)
+	broadcastSession.Track = (<-internalLocalTrackChan)
 
 	// # Keep the goroutine alive // TODO: Handle the liveness of the goroutine outside.
 	done := make(chan bool)
