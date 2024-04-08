@@ -4,6 +4,7 @@ go 1.22.0
 
 require (
 	github.com/labstack/echo/v4 v4.11.4
+	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/pion/interceptor v0.1.27
 	github.com/pion/randutil v0.1.0
 	github.com/pion/webrtc/v4 v4.0.0-beta.14
@@ -14,7 +15,6 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
-	github.com/matoous/go-nanoid/v2 v2.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
