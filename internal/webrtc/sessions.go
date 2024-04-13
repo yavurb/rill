@@ -3,10 +3,10 @@ package webrtc
 import "github.com/pion/webrtc/v4"
 
 var (
-	Broadcasts []*BroadcasterSession
+	Broadcasts []*BroadcastSession
 )
 
-type BroadcasterSession struct {
+type BroadcastSession struct {
 	ID    string
 	Track *webrtc.TrackLocalStaticRTP
 }

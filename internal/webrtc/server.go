@@ -203,7 +203,6 @@ func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewe
 
 	done := make(chan bool)
 	<-done
-
 }
 
 func NewWebRTCServer() { // nolint:gocognit
