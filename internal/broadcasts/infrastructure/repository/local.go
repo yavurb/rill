@@ -34,7 +34,8 @@ func (r *localRepository) GetBroadcasts() ([]*domain.BroadcastSession, error) {
 	return r.broadcasts, nil
 }
 
-func (r *localRepository) CreateBroadcast(remoteSDPSession, localSDPSession string, track *webrtc.TrackLocalStaticRTP) (*domain.BroadcastSession, error) {
+func (r *localRepository) CreateBroadcast(remoteSDPSession, localSDPSession string, TrackChan <-chan *webrtc.TrackLocalStaticRTP) (*domain.BroadcastSession, error) {
+	track := <-TrackChan
 	broadcastId, err := publicid.New(broadcastIdPrefix, 12)
 	if err != nil {
 		return nil, err
@@ -46,6 +47,8 @@ func (r *localRepository) CreateBroadcast(remoteSDPSession, localSDPSession stri
 		RemoteSDPSession: remoteSDPSession,
 		LocalSDPSession:  localSDPSession,
 	}
+
+	r.broadcasts = append(r.broadcasts, broadcast)
 
 	return broadcast, nil
 }

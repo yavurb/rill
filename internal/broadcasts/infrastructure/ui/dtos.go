@@ -12,6 +12,10 @@ type BroadcastOut struct {
 	ID string `json:"id"`
 }
 
+type BroadcastCreateOut struct {
+	SDP string `json:"sdp"`
+}
+
 type BroadcastsOut struct {
 	Broadcasts []*BroadcastOut `json:"broadcasts"`
 }

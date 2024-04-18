@@ -12,7 +12,7 @@ import (
 	"github.com/yavurb/rill/internal/signal"
 )
 
-func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *webrtc.TrackLocalStaticRTP, broadcasterLocalSDPChan chan string) {
+func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *webrtc.TrackLocalStaticRTP, broadcasterLocalSDPChan chan<- string) {
 	// Everything below is the Pion WebRTC API, thanks for using it ❤️.
 	offer := webrtc.SessionDescription{}
 	signal.Decode(broadcasterSDPChan, &offer)
@@ -68,8 +68,6 @@ func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *we
 		panic(err)
 	}
 
-	internalLocalTrackChan := make(chan *webrtc.TrackLocalStaticRTP)
-
 	// Set a handler for when a new remote track starts, this just distributes all our packets
 	// to connected peers
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
@@ -78,7 +76,7 @@ func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *we
 		if newTrackErr != nil {
 			panic(newTrackErr)
 		}
-		internalLocalTrackChan <- localTrack
+		trackChan <- localTrack
 
 		rtpBuf := make([]byte, 1400)
 		for {
@@ -121,10 +119,7 @@ func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *we
 	<-gatherComplete
 
 	// Get the LocalDescription and take it to base64 so we can paste in browser
-	fmt.Print("Paste this SDP in your browser console:\n")
 	broadcasterLocalSDPChan <- fmt.Sprint(signal.Encode(*peerConnection.LocalDescription()))
-
-	trackChan <- (<-internalLocalTrackChan)
 
 	// # Keep the goroutine alive // TODO: Handle the liveness of the goroutine outside.
 	done := make(chan bool)

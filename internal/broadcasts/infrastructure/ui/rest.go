@@ -24,7 +24,7 @@ func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsec
 	routerGroup.POST("", routerCtx.CreateBroadcast)
 }
 
-func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
+func (routerCtx *broadcastsRouterCtx) GetBroadcasts(c echo.Context) error {
 	broadcasts, err := routerCtx.broadcastUsecase.GetBroadcasts()
 	if err != nil {
 		return HTTPError{
@@ -43,7 +43,7 @@ func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
 	return c.JSON(http.StatusOK, broadcastsOut)
 }
 
-func (routerCtx *broadcastsRouterCtx) GetBroadcasts(c echo.Context) error {
+func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
 	var requestParams GetBroadcastParams
 
 	if err := c.Bind(&requestParams); err != nil {
@@ -75,15 +75,15 @@ func (routerCtx *broadcastsRouterCtx) CreateBroadcast(c echo.Context) error {
 		}.ErrUnprocessableEntity()
 	}
 
-	broadcast, err := routerCtx.broadcastUsecase.Create(requestBody.SDP)
+	broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(requestBody.SDP)
 	if err != nil {
 		return HTTPError{
 			Message: "could no create broadcast",
 		}.InternalServerError()
 	}
 
-	broadcastOut := &BroadcastOut{
-		ID: broadcast.ID,
+	broadcastOut := &BroadcastCreateOut{
+		SDP: broadcastLocalSDPSession,
 	}
 
 	return c.JSON(http.StatusCreated, broadcastOut)

@@ -2,23 +2,18 @@ package application
 
 import (
 	"github.com/pion/webrtc/v4"
-	"github.com/yavurb/rill/internal/broadcasts/domain"
 	lwebrtc "github.com/yavurb/rill/internal/webrtc"
 )
 
-func (uc *usecase) Create(remoteSDPSession string) (*domain.BroadcastSession, error) {
+func (uc *usecase) Create(remoteSDPSession string) (string, error) {
 	trackChan := make(chan *webrtc.TrackLocalStaticRTP)
 	localSDPSessionChan := make(chan string)
 
-	lwebrtc.HandleBroadcasterConnection(remoteSDPSession, trackChan, localSDPSessionChan)
+	go lwebrtc.HandleBroadcasterConnection(remoteSDPSession, trackChan, localSDPSessionChan)
 
-	broascastLocalSDPSession := <-localSDPSessionChan
-	broadcastTrack := <-trackChan
+	broadcastLocalSDPSession := <-localSDPSessionChan
 
-	broadcast, err := uc.repository.CreateBroadcast(remoteSDPSession, broascastLocalSDPSession, broadcastTrack)
-	if err != nil {
-		return nil, domain.ErrUnknown
-	}
+	go uc.repository.CreateBroadcast(remoteSDPSession, broadcastLocalSDPSession, trackChan)
 
-	return broadcast, nil
+	return broadcastLocalSDPSession, nil
 }
