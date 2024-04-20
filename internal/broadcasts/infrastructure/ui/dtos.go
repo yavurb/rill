@@ -19,3 +19,12 @@ type BroadcastCreateOut struct {
 type BroadcastsOut struct {
 	Broadcasts []*BroadcastOut `json:"broadcasts"`
 }
+
+type BroadcastConnectParams struct {
+	BroadcastID string `param:"broadcastId" validate:"required"`
+	SDP         string `json:"sdp" validate:"required"`
+}
+
+type BroadcastConnectOut struct {
+	SDP string `json:"sdp"`
+}

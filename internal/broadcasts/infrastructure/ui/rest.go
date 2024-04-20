@@ -22,6 +22,7 @@ func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsec
 	routerGroup.GET("", routerCtx.GetBroadcasts)
 	routerGroup.GET("/:id", routerCtx.GetBroadcast)
 	routerGroup.POST("", routerCtx.CreateBroadcast)
+	routerGroup.POST("/connect/:broadcastId", routerCtx.Connect)
 }
 
 func (routerCtx *broadcastsRouterCtx) GetBroadcasts(c echo.Context) error {
@@ -87,4 +88,27 @@ func (routerCtx *broadcastsRouterCtx) CreateBroadcast(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, broadcastOut)
+}
+
+func (routerCtx *broadcastsRouterCtx) Connect(c echo.Context) error {
+	var connectParams BroadcastConnectParams
+
+	if err := c.Bind(&connectParams); err != nil {
+		return HTTPError{
+			Message: "broadcast sdp is required",
+		}.ErrUnprocessableEntity()
+	}
+
+	localSDP, err := routerCtx.broadcastUsecase.Connect(connectParams.SDP, connectParams.BroadcastID)
+	if err != nil {
+		return HTTPError{
+			Message: "broadcast not found",
+		}.NotFound()
+	}
+
+	sdpOut := &BroadcastConnectOut{
+		SDP: localSDP,
+	}
+
+	return c.JSON(http.StatusOK, sdpOut)
 }
