@@ -72,11 +72,11 @@ func (routerCtx *broadcastsRouterCtx) CreateBroadcast(c echo.Context) error {
 
 	if err := c.Bind(&requestBody); err != nil {
 		return HTTPError{
-			Message: "broadcast sdp is required",
+			Message: "broadcast sdp and title are required",
 		}.ErrUnprocessableEntity()
 	}
 
-	broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(requestBody.SDP)
+	broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(requestBody.SDP, requestBody.Title)
 	if err != nil {
 		return HTTPError{
 			Message: "could no create broadcast",

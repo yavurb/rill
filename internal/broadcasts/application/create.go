@@ -5,7 +5,7 @@ import (
 	lwebrtc "github.com/yavurb/rill/internal/webrtc"
 )
 
-func (uc *usecase) Create(remoteSDPSession string) (string, error) {
+func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (string, error) {
 	trackChan := make(chan *webrtc.TrackLocalStaticRTP)
 	localSDPSessionChan := make(chan string)
 
