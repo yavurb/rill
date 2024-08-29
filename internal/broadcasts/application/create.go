@@ -13,7 +13,7 @@ func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (string, erro
 
 	broadcastLocalSDPSession := <-localSDPSessionChan
 
-	go uc.repository.CreateBroadcast(remoteSDPSession, broadcastLocalSDPSession, trackChan)
+	go uc.repository.CreateBroadcast(remoteSDPSession, broadcastLocalSDPSession, broadcastTitle, trackChan)
 
 	return broadcastLocalSDPSession, nil
 }
