@@ -22,7 +22,7 @@ func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsec
 	routerGroup.GET("", routerCtx.GetBroadcasts)
 	routerGroup.GET("/:id", routerCtx.GetBroadcast)
 	routerGroup.POST("", routerCtx.CreateBroadcast)
-	routerGroup.POST("/connect/:broadcastId", routerCtx.Connect)
+	routerGroup.POST("/:broadcastID/join", routerCtx.Connect)
 }
 
 func (routerCtx *broadcastsRouterCtx) GetBroadcasts(c echo.Context) error {

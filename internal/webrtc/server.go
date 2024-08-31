@@ -11,6 +11,7 @@ import (
 	"github.com/yavurb/rill/internal/signal"
 )
 
+// FIXME: Handle connection shootdowns gracefully.
 func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *webrtc.TrackLocalStaticRTP, broadcasterLocalSDPChan chan<- string) {
 	// Everything below is the Pion WebRTC API, thanks for using it ❤️.
 	offer := webrtc.SessionDescription{}

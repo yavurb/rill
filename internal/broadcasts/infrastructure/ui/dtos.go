@@ -23,7 +23,7 @@ type BroadcastsOut struct {
 }
 
 type BroadcastConnectParams struct {
-	BroadcastID string `param:"broadcastId" validate:"required"`
+	BroadcastID string `param:"broadcastID" validate:"required"`
 	SDP         string `json:"sdp" validate:"required"`
 }
 
