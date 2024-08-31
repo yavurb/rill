@@ -37,7 +37,8 @@ func (routerCtx *broadcastsRouterCtx) GetBroadcasts(c echo.Context) error {
 
 	for _, broascast := range broadcasts {
 		broadcastsOut.Broadcasts = append(broadcastsOut.Broadcasts, &BroadcastOut{
-			ID: broascast.ID,
+			ID:    broascast.ID,
+			Title: broascast.Title,
 		})
 	}
 
@@ -61,19 +62,24 @@ func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
 	}
 
 	broadcastOut := &BroadcastOut{
-		ID: broadcast.ID,
+		ID:    broadcast.ID,
+		Title: broadcast.Title,
 	}
 
 	return c.JSON(http.StatusOK, broadcastOut)
 }
 
 func (routerCtx *broadcastsRouterCtx) CreateBroadcast(c echo.Context) error {
-	var requestBody BroadcastIn
+	requestBody := new(BroadcastIn)
 
-	if err := c.Bind(&requestBody); err != nil {
+	if err := c.Bind(requestBody); err != nil {
 		return HTTPError{
 			Message: "broadcast sdp and title are required",
 		}.ErrUnprocessableEntity()
+	}
+
+	if err := c.Validate(requestBody); err != nil {
+		return HTTPError{Message: "broadcast sdp and title are required"}.ErrUnprocessableEntity()
 	}
 
 	broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(requestBody.SDP, requestBody.Title)

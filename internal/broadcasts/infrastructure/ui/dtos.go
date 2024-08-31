@@ -10,7 +10,8 @@ type BroadcastIn struct {
 }
 
 type BroadcastOut struct {
-	ID string `json:"id"`
+	ID    string `json:"id"`
+	Title string `json:"title"`
 }
 
 type BroadcastCreateOut struct {
