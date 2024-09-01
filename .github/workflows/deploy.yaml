@@ -43,8 +43,8 @@ jobs:
 
       - name: Setup Environment
         run: |
-          echo "${{ needs.git-release.outputs.semver }}" > ./cmd/goyurback/.version
-          cat cmd/goyurback/.version
+          echo "${{ needs.git-release.outputs.semver }}" > ./cmd/rill/.version
+          cat cmd/rill/.version
           echo "GO_ENV=prod" >> .env.prod
           echo "PORT=$PORT" >> .env.prod
 
