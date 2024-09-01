@@ -1,0 +1,99 @@
+name: Deploy to production - GCP
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - production
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-east1
+  SERVICE_NAME: rill
+  PORT: 8910
+  NUM_INSTANCES: 1
+
+jobs:
+  git-release:
+    uses: ./.github/workflows/git-release.yaml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build and push to Artifact Registry
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      contents: read
+      id-token: write
+    needs: git-release
+    outputs:
+      image_tag: ${{ steps.dtag.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup gcloud credentials
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Setup gcloud project
+        run: gcloud config set project $PROJECT_ID
+
+      - name: Setup Environment
+        env:
+          DB_URI: ${{ secrets.DB_URI }}
+        run: |
+          echo "${{ needs.git-release.outputs.semver }}" > ./cmd/goyurback/.version
+          cat cmd/goyurback/.version
+          echo "GO_ENV=prod" >> .env.prod
+          echo "PORT=$PORT" >> .env.prod
+
+      - name: Configure docker for gcloud
+        run: gcloud auth configure-docker $REGION-docker.pkg.dev
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/docker-images/${{ env.SERVICE_NAME }}:${{ needs.git-release.outputs.semver }}.${{ github.sha }}
+
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: [git-release, build]
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup gcloud credentials
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Setup gcloud project
+        run: gcloud config set project $PROJECT_ID
+
+      - name: Deploy container image to Cloud Run
+        env:
+          SEMVER: ${{ needs.git-release.outputs.semver }}
+        run: |
+          gcloud beta run deploy $SERVICE_NAME \
+            --memory 256Mi \
+            --execution-environment gen1 \
+            --image $REGION-docker.pkg.dev/$PROJECT_ID/docker-images/$SERVICE_NAME:$SEMVER.$GITHUB_SHA \
+            --port $PORT \
+            --project $PROJECT_ID \
+            --region $REGION \
+            --max-instances $NUM_INSTANCES \
+            --allow-unauthenticated \
+            --cpu-throttling \
+            --cpu-boost \
+            --set-env-vars "GO_ENV=prod"
