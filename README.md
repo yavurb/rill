@@ -1,3 +1,3 @@
 # Rill
 
-A simple meeting app
+The HTTP/WS/Signaling Server for the Rill Project
