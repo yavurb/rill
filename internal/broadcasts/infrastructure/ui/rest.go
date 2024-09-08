@@ -39,7 +39,6 @@ func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsec
 	routerGroup.GET("/ws", routerCtx.HandleWebsocket)
 	routerGroup.GET("", routerCtx.GetBroadcasts)
 	routerGroup.GET("/:id", routerCtx.GetBroadcast)
-	routerGroup.GET("/:broadcastID/join", routerCtx.Connect)
 }
 
 func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
