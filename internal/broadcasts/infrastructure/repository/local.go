@@ -44,6 +44,7 @@ func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*do
 		Title:            broadcast.Title,
 		LocalSDPSession:  broadcast.LocalSDPSession,
 		RemoteSDPSession: broadcast.RemoteSDPSession,
+		Viewers:          make(map[*domain.Viewer]struct{}),
 	}
 
 	r.broadcastsMutex.Lock()

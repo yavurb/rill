@@ -59,6 +59,7 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 	}
 
 	defer ws.Close(websocket.StatusNormalClosure, "goodbye")
+	// TODO: Add a cleanup function to remove the publisher from the map when the connection is closed.
 
 	ctx := c.Request().Context()
 	for {
