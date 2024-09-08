@@ -2,22 +2,21 @@ package repository
 
 import (
 	"errors"
+	"sync"
 
-	"github.com/pion/webrtc/v4"
 	"github.com/yavurb/rill/internal/broadcasts/domain"
 	"github.com/yavurb/rill/internal/pkg/publicid"
 )
 
 type localRepository struct {
-	broadcasts []*domain.BroadcastSession
+	broadcasts      []*domain.BroadcastSession
+	broadcastsMutex sync.Mutex
 }
 
 const broadcastIdPrefix = "br"
 
-func NewLocalRepository(broadcasts []*domain.BroadcastSession) domain.BroadcastsRepository {
-	return &localRepository{
-		broadcasts,
-	}
+func NewLocalRepository() domain.BroadcastsRepository {
+	return &localRepository{}
 }
 
 func (r *localRepository) GetBroadcast(id string) (*domain.BroadcastSession, error) {
@@ -34,21 +33,38 @@ func (r *localRepository) GetBroadcasts() ([]*domain.BroadcastSession, error) {
 	return r.broadcasts, nil
 }
 
-func (r *localRepository) CreateBroadcast(remoteSDPSession, localSDPSession, broadcastTitle string, TrackChan <-chan *webrtc.TrackLocalStaticRTP) (*domain.BroadcastSession, error) {
-	track := <-TrackChan
+func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*domain.BroadcastSession, error) {
 	broadcastId, err := publicid.New(broadcastIdPrefix, 12)
 	if err != nil {
 		return nil, err
 	}
 
-	broadcast := &domain.BroadcastSession{
-		ID:    broadcastId,
-		Title: broadcastTitle,
-		Track: track, RemoteSDPSession: remoteSDPSession,
-		LocalSDPSession: localSDPSession,
+	broadcast_ := &domain.BroadcastSession{
+		ID:               broadcastId,
+		Title:            broadcast.Title,
+		LocalSDPSession:  broadcast.LocalSDPSession,
+		RemoteSDPSession: broadcast.RemoteSDPSession,
 	}
 
-	r.broadcasts = append(r.broadcasts, broadcast)
+	r.broadcastsMutex.Lock()
+	r.broadcasts = append(r.broadcasts, broadcast_)
+	r.broadcastsMutex.Unlock()
 
-	return broadcast, nil
+	return broadcast_, nil
+}
+
+func (r *localRepository) UpdateBroadcast(id string, broadcast domain.BroadcastUpdate) (*domain.BroadcastSession, error) {
+	broadcast_, err := r.GetBroadcast(id)
+	if err != nil {
+		return nil, err
+	}
+
+	track := <-broadcast.Track
+
+	broadcast_.Track = track
+	broadcast_.Title = broadcast.Title
+	broadcast_.LocalSDPSession = broadcast.LocalSDPSession
+	broadcast_.RemoteSDPSession = broadcast.RemoteSDPSession
+
+	return broadcast_, nil
 }

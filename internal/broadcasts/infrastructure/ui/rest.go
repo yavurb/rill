@@ -48,7 +48,9 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 		c.Request(),
 		&websocket.AcceptOptions{OriginPatterns: []string{
 			"localhost:*",
+
 			"rill.one",
+
 			"rill.lat",
 		}},
 	)
@@ -101,13 +103,13 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					log.Printf("Error: %s", err)
 				}
 
-				broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(eventData.SDP, eventData.Title)
+				broadcast, err := routerCtx.broadcastUsecase.Create(eventData.SDP, eventData.Title)
 				if err != nil {
 					// TODO: Handle the error properly
 				}
 
 				broadcastOut := &BroadcastCreateOut{
-					SDP: broadcastLocalSDPSession,
+					SDP: broadcast.LocalSDPSession,
 				}
 				wsEvent := WsEvent{Event: "new-broadcast", Data: broadcastOut}
 
@@ -116,7 +118,29 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					// TODO: Handle the error properly
 					return err
 				}
-			case "subscribe":
+			case "new-viewer":
+				eventData := new(ViewerIn)
+
+				err = json.Unmarshal(jsonEventData, eventData)
+				if err != nil {
+					log.Printf("Error: %s", err)
+				}
+
+				viewer, err := routerCtx.broadcastUsecase.Connect(eventData.SDP, eventData.BroadcastID)
+				if err != nil {
+					// TODO: Handle the error properly
+				}
+
+				viewerOut := &ViewerOut{
+					SDP: viewer.LocalSDPSession,
+				}
+				wsEvent := WsEvent{Event: "new-viewer", Data: viewerOut}
+
+				err = wsjson.Write(ctx, ws, wsEvent)
+				if err != nil {
+					// TODO: Handle the error properly
+					return err
+				}
 			case "unsubscribe":
 			default:
 				// TODO: Handle the case when the event is not recognized. Should we send an error message to the client?
@@ -168,54 +192,4 @@ func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, broadcastOut)
-}
-
-func (routerCtx *broadcastsRouterCtx) CreateBroadcast(c echo.Context) error {
-	requestBody := new(BroadcastIn)
-
-	if err := c.Bind(requestBody); err != nil {
-		return HTTPError{
-			Message: "broadcast sdp and title are required",
-		}.ErrUnprocessableEntity()
-	}
-
-	if err := c.Validate(requestBody); err != nil {
-		return HTTPError{Message: "broadcast sdp and title are required"}.ErrUnprocessableEntity()
-	}
-
-	broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(requestBody.SDP, requestBody.Title)
-	if err != nil {
-		return HTTPError{
-			Message: "could no create broadcast",
-		}.InternalServerError()
-	}
-
-	broadcastOut := &BroadcastCreateOut{
-		SDP: broadcastLocalSDPSession,
-	}
-
-	return c.JSON(http.StatusCreated, broadcastOut)
-}
-
-func (routerCtx *broadcastsRouterCtx) Connect(c echo.Context) error {
-	var connectParams BroadcastConnectParams
-
-	if err := c.Bind(&connectParams); err != nil {
-		return HTTPError{
-			Message: "broadcast sdp is required",
-		}.ErrUnprocessableEntity()
-	}
-
-	localSDP, err := routerCtx.broadcastUsecase.Connect(connectParams.SDP, connectParams.BroadcastID)
-	if err != nil {
-		return HTTPError{
-			Message: "broadcast not found",
-		}.NotFound()
-	}
-
-	sdpOut := &BroadcastConnectOut{
-		SDP: localSDP,
-	}
-
-	return c.JSON(http.StatusOK, sdpOut)
 }

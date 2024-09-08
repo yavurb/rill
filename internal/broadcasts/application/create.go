@@ -2,10 +2,11 @@ package application
 
 import (
 	"github.com/pion/webrtc/v4"
+	"github.com/yavurb/rill/internal/broadcasts/domain"
 	"github.com/yavurb/rill/internal/signaling"
 )
 
-func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (string, error) {
+func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (*domain.BroadcastSession, error) {
 	trackChan := make(chan *webrtc.TrackLocalStaticRTP)
 	localSDPSessionChan := make(chan string)
 
@@ -13,7 +14,21 @@ func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (string, erro
 
 	broadcastLocalSDPSession := <-localSDPSessionChan
 
-	go uc.repository.CreateBroadcast(remoteSDPSession, broadcastLocalSDPSession, broadcastTitle, trackChan)
+	broadcast, err := uc.repository.CreateBroadcast(domain.BroadcastCreate{
+		Title:            broadcastTitle,
+		RemoteSDPSession: remoteSDPSession,
+		LocalSDPSession:  broadcastLocalSDPSession,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return broadcastLocalSDPSession, nil
+	go uc.repository.UpdateBroadcast(broadcast.ID, domain.BroadcastUpdate{
+		Title:            broadcast.Title,
+		RemoteSDPSession: broadcast.RemoteSDPSession,
+		LocalSDPSession:  broadcast.LocalSDPSession,
+		Track:            trackChan,
+	})
+
+	return broadcast, nil
 }

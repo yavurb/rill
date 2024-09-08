@@ -5,10 +5,10 @@ import (
 	"github.com/yavurb/rill/internal/signaling"
 )
 
-func (uc *usecase) Connect(remoteSdp, broadcastId string) (string, error) {
+func (uc *usecase) Connect(remoteSdp, broadcastId string) (*domain.Viewer, error) {
 	broadcast, err := uc.repository.GetBroadcast(broadcastId)
 	if err != nil {
-		return "", domain.ErrNotFound
+		return nil, domain.ErrNotFound
 	}
 
 	viewerLocalSDPChan := make(chan string)
@@ -17,5 +17,12 @@ func (uc *usecase) Connect(remoteSdp, broadcastId string) (string, error) {
 
 	viewerLocalSDP := <-viewerLocalSDPChan
 
-	return viewerLocalSDP, nil
+	viewer := &domain.Viewer{
+		Events:          make(chan string, 1),
+		LocalSDPSession: viewerLocalSDP,
+	}
+
+	broadcast.AddViewer(viewer)
+
+	return viewer, nil
 }

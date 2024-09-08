@@ -6,14 +6,11 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/yavurb/rill/internal/app/mods"
 	"github.com/yavurb/rill/internal/broadcasts/application"
-	"github.com/yavurb/rill/internal/broadcasts/domain"
 	"github.com/yavurb/rill/internal/broadcasts/infrastructure/repository"
 	"github.com/yavurb/rill/internal/broadcasts/infrastructure/ui"
 )
 
-type AppCtx struct {
-	Broadcasts []*domain.BroadcastSession
-}
+type AppCtx struct{}
 
 func NewAppContext() *AppCtx {
 	return &AppCtx{}
@@ -41,7 +38,7 @@ func (appCtx *AppCtx) NewHttpRouter() *echo.Echo {
 
 	e.Logger.SetLevel(log.DEBUG)
 
-	broadcastsRepository := repository.NewLocalRepository(appCtx.Broadcasts)
+	broadcastsRepository := repository.NewLocalRepository()
 	broadcastsUsecase := application.NewBroadcastUsecase(broadcastsRepository)
 	ui.NewBroadcastsRouter(e, broadcastsUsecase)
 
