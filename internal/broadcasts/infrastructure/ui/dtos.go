@@ -32,6 +32,6 @@ type BroadcastConnectOut struct {
 }
 
 type WsEvent struct {
-	Data  map[string]any `json:"data"`
-	Event string         `json:"event"`
+	Data  any    `json:"data"`
+	Event string `json:"event"`
 }

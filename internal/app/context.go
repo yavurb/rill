@@ -29,7 +29,14 @@ func (appCtx *AppCtx) NewHttpRouter() *echo.Echo {
 	e.Use(middleware.RequestID())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:4321"},
+		AllowOrigins: []string{
+			"http://localhost:4321",
+			"https://rill.one",
+			"http://rill.one",
+			"https://rill.lat",
+			"http://rill.lat",
+		},
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
 	}))
 
 	e.Logger.SetLevel(log.DEBUG)

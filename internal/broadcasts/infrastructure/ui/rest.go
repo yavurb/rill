@@ -43,8 +43,17 @@ func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsec
 }
 
 func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
-	ws, err := websocket.Accept(c.Response(), c.Request(), nil)
+	ws, err := websocket.Accept(
+		c.Response(),
+		c.Request(),
+		&websocket.AcceptOptions{OriginPatterns: []string{
+			"localhost:*",
+			"rill.one",
+			"rill.lat",
+		}},
+	)
 	if err != nil {
+		c.Logger().Debug(err)
 		return HTTPError{Message: "Upgrade to websocket required"}.ErrUpgradeRequired()
 	}
 
@@ -100,8 +109,9 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 				broadcastOut := &BroadcastCreateOut{
 					SDP: broadcastLocalSDPSession,
 				}
+				wsEvent := WsEvent{Event: "new-broadcast", Data: broadcastOut}
 
-				err = wsjson.Write(ctx, ws, broadcastOut)
+				err = wsjson.Write(ctx, ws, wsEvent)
 				if err != nil {
 					// TODO: Handle the error properly
 					return err
