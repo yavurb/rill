@@ -2,14 +2,14 @@ package application
 
 import (
 	"github.com/pion/webrtc/v4"
-	lwebrtc "github.com/yavurb/rill/internal/webrtc"
+	"github.com/yavurb/rill/internal/signaling"
 )
 
 func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (string, error) {
 	trackChan := make(chan *webrtc.TrackLocalStaticRTP)
 	localSDPSessionChan := make(chan string)
 
-	go lwebrtc.HandleBroadcasterConnection(remoteSDPSession, trackChan, localSDPSessionChan)
+	go signaling.HandleBroadcasterConnection(remoteSDPSession, trackChan, localSDPSessionChan)
 
 	broadcastLocalSDPSession := <-localSDPSessionChan
 
