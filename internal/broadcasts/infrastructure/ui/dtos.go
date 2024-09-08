@@ -30,3 +30,8 @@ type BroadcastConnectParams struct {
 type BroadcastConnectOut struct {
 	SDP string `json:"sdp"`
 }
+
+type WsEvent struct {
+	Data  map[string]any `json:"data"`
+	Event string         `json:"event"`
+}

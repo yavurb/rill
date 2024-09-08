@@ -1,28 +1,108 @@
 package ui
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"sync"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/labstack/echo/v4"
 	"github.com/yavurb/rill/internal/broadcasts/domain"
 )
 
-type broadcastsRouterCtx struct {
-	echo             *echo.Echo
-	broadcastUsecase domain.BroadcastsUsecases
-}
+type (
+	subscriber struct {
+		event chan string
+	}
+	publisher struct {
+		subscribers      map[*subscriber]struct{}
+		subscribersMutex sync.Mutex
+	}
+	broadcastsRouterCtx struct {
+		echo             *echo.Echo
+		broadcastUsecase domain.BroadcastsUsecases
+		publishers       map[string]*publisher
+	}
+)
 
 func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsecases) {
 	routerGroup := echo.Group("broadcasts")
 	routerCtx := &broadcastsRouterCtx{
-		echo,
-		broadcastUsecase,
+		echo:             echo,
+		broadcastUsecase: broadcastUsecase,
+		publishers:       make(map[string]*publisher),
 	}
 
+	routerGroup.GET("/ws", routerCtx.HandleWebsocket)
 	routerGroup.GET("", routerCtx.GetBroadcasts)
 	routerGroup.GET("/:id", routerCtx.GetBroadcast)
-	routerGroup.POST("", routerCtx.CreateBroadcast)
-	routerGroup.POST("/:broadcastID/join", routerCtx.Connect)
+	routerGroup.GET("/:broadcastID/join", routerCtx.Connect)
+}
+
+func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
+	ws, err := websocket.Accept(c.Response(), c.Request(), nil)
+	if err != nil {
+		return HTTPError{Message: "Upgrade to websocket required"}.ErrUpgradeRequired()
+	}
+
+	defer ws.Close(websocket.StatusNormalClosure, "goodbye")
+
+	ctx := c.Request().Context()
+	for {
+		select {
+		case <-ctx.Done():
+			c.Logger().Info("Request context canceled:", ctx.Err())
+
+			return nil
+		default:
+			event := new(WsEvent)
+			err := wsjson.Read(ctx, ws, event)
+			if err != nil {
+				if closeStatus := websocket.CloseStatus(err); closeStatus != -1 {
+					switch closeStatus {
+					case websocket.StatusNormalClosure:
+						return nil
+					case websocket.StatusGoingAway:
+						c.Logger().Info("Client is going away")
+						return nil
+					case websocket.StatusAbnormalClosure:
+						c.Logger().Info("Client is closing abnormally")
+						return nil
+					}
+				}
+
+				c.Logger().Error("Unexpected WebSocket Error:", err)
+
+				return err
+			}
+
+			c.Logger().Info("Received: ", event)
+
+			jsonEventData, _ := json.Marshal(event.Data)
+
+			switch event.Event {
+			case "subscribe":
+				broadcastIn := new(BroadcastIn)
+
+				err = json.Unmarshal(jsonEventData, broadcastIn)
+				if err != nil {
+					log.Printf("Error: %s", err)
+				}
+
+				log.Print(broadcastIn.SDP)
+				log.Print(broadcastIn.Title)
+			case "unsubscribe":
+				fmt.Println("unsubscribe")
+			case "broadcast":
+				fmt.Println("broadcast")
+			default:
+				fmt.Println("default")
+			}
+		}
+	}
 }
 
 func (routerCtx *broadcastsRouterCtx) GetBroadcasts(c echo.Context) error {

@@ -2,7 +2,7 @@ package application
 
 import (
 	"github.com/yavurb/rill/internal/broadcasts/domain"
-	"github.com/yavurb/rill/internal/webrtc"
+	"github.com/yavurb/rill/internal/signaling"
 )
 
 func (uc *usecase) Connect(remoteSdp, broadcastId string) (string, error) {
@@ -13,7 +13,7 @@ func (uc *usecase) Connect(remoteSdp, broadcastId string) (string, error) {
 
 	viewerLocalSDPChan := make(chan string)
 
-	go webrtc.HandleViewer(remoteSdp, broadcast.Track, viewerLocalSDPChan)
+	go signaling.HandleViewer(remoteSdp, broadcast.Track, viewerLocalSDPChan)
 
 	viewerLocalSDP := <-viewerLocalSDPChan
 

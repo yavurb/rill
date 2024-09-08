@@ -3,10 +3,10 @@ module github.com/yavurb/rill
 go 1.23.0
 
 require (
+	github.com/coder/websocket v1.8.12
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/pion/interceptor v0.1.27
-	github.com/pion/randutil v0.1.0
 	github.com/pion/webrtc/v4 v4.0.0-beta.14
 )
 
@@ -15,6 +15,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/pion/randutil v0.1.0 // indirect
 )
 
 require (

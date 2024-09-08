@@ -1,21 +1,37 @@
-package webrtc
+package signaling
 
 import (
 	"errors"
 	"fmt"
 	"io"
 
+	"github.com/labstack/echo/v4"
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v4"
-	"github.com/yavurb/rill/internal/signal"
 )
+
+type (
+	subscriber struct {
+		event chan string
+	}
+	publisher struct {
+		subscribers map[*subscriber]struct{}
+	}
+	serverCtx struct {
+		publishers map[string]*publisher
+	}
+)
+
+func NewSignalingServer(e *echo.Echo) *serverCtx {
+	return &serverCtx{}
+}
 
 // FIXME: Handle connection shootdowns gracefully.
 func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *webrtc.TrackLocalStaticRTP, broadcasterLocalSDPChan chan<- string) {
 	// Everything below is the Pion WebRTC API, thanks for using it ❤️.
 	offer := webrtc.SessionDescription{}
-	signal.Decode(broadcasterSDPChan, &offer)
+	Decode(broadcasterSDPChan, &offer)
 	fmt.Println("")
 
 	peerConnectionConfig := webrtc.Configuration{
@@ -114,12 +130,12 @@ func HandleBroadcasterConnection(broadcasterSDPChan string, trackChan chan<- *we
 	}
 
 	// Block until ICE Gathering is complete, disabling trickle ICE
-	// we do this because we only can exchange one signaling message
+	// we do this because we only can exchange one ng message
 	// in a production application you should exchange ICE Candidates via OnICECandidate
 	<-gatherComplete
 
 	// Get the LocalDescription and take it to base64 so we can paste in browser
-	broadcasterLocalSDPChan <- fmt.Sprint(signal.Encode(*peerConnection.LocalDescription()))
+	broadcasterLocalSDPChan <- fmt.Sprint(Encode(*peerConnection.LocalDescription()))
 
 	// # Keep the goroutine alive // TODO: Handle the liveness of the goroutine outside.
 	done := make(chan bool)
@@ -142,7 +158,7 @@ func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewe
 	fmt.Printf("I'm passign through here")
 
 	recvOnlyOffer := webrtc.SessionDescription{}
-	signal.Decode(viewerSDPChan, &recvOnlyOffer)
+	Decode(viewerSDPChan, &recvOnlyOffer)
 
 	// Create a new PeerConnection
 	peerConnection, err := webrtc.NewPeerConnection(peerConnectionConfig)
@@ -189,12 +205,12 @@ func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewe
 	}
 
 	// Block until ICE Gathering is complete, disabling trickle ICE
-	// we do this because we only can exchange one signaling message
+	// we do this because we only can exchange one ng message
 	// in a production application you should exchange ICE Candidates via OnICECandidate
 	<-gatherComplete
 
 	// Get the LocalDescription and take it to base64 so we can paste in browser
-	viewerLocalSDPChan <- fmt.Sprint(signal.Encode(*peerConnection.LocalDescription()))
+	viewerLocalSDPChan <- fmt.Sprint(Encode(*peerConnection.LocalDescription()))
 
 	done := make(chan bool)
 	<-done

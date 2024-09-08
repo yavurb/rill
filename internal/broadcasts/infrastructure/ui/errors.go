@@ -36,7 +36,13 @@ func (e HTTPError) Conflict() error {
 
 func (e HTTPError) ErrUnprocessableEntity() error {
 	err := echo.ErrUnprocessableEntity
+	err.Message = e.Message
 
+	return err
+}
+
+func (e HTTPError) ErrUpgradeRequired() error {
+	err := echo.ErrUpgradeRequired
 	err.Message = e.Message
 
 	return err
