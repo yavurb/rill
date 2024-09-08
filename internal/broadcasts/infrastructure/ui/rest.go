@@ -84,22 +84,33 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 			jsonEventData, _ := json.Marshal(event.Data)
 
 			switch event.Event {
-			case "subscribe":
-				broadcastIn := new(BroadcastIn)
+			case "new-broadcast":
+				eventData := new(BroadcastIn)
 
-				err = json.Unmarshal(jsonEventData, broadcastIn)
+				err = json.Unmarshal(jsonEventData, eventData)
 				if err != nil {
 					log.Printf("Error: %s", err)
 				}
 
-				log.Print(broadcastIn.SDP)
-				log.Print(broadcastIn.Title)
+				broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(eventData.SDP, eventData.Title)
+				if err != nil {
+					// TODO: Handle the error properly
+				}
+
+				broadcastOut := &BroadcastCreateOut{
+					SDP: broadcastLocalSDPSession,
+				}
+
+				err = wsjson.Write(ctx, ws, broadcastOut)
+				if err != nil {
+					// TODO: Handle the error properly
+					return err
+				}
+			case "subscribe":
 			case "unsubscribe":
-				fmt.Println("unsubscribe")
-			case "broadcast":
-				fmt.Println("broadcast")
 			default:
-				fmt.Println("default")
+				// TODO: Handle the case when the event is not recognized. Should we send an error message to the client?
+				fmt.Println("No event found")
 			}
 		}
 	}
