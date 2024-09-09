@@ -47,6 +47,8 @@ func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*do
 		Viewers:          make(map[*domain.Viewer]struct{}),
 	}
 
+	broadcast_.SetCtx(broadcast.Ctx, broadcast.Cancel)
+
 	r.broadcastsMutex.Lock()
 	r.broadcasts = append(r.broadcasts, broadcast_)
 	r.broadcastsMutex.Unlock()

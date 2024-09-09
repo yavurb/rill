@@ -47,9 +47,7 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 		c.Request(),
 		&websocket.AcceptOptions{OriginPatterns: []string{
 			"localhost:*",
-
 			"rill.one",
-
 			"rill.lat",
 		}},
 	)
@@ -61,11 +59,17 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 	defer ws.Close(websocket.StatusNormalClosure, "goodbye")
 	// TODO: Add a cleanup function to remove the publisher from the map when the connection is closed.
 
+	broadcast := new(domain.BroadcastSession)
 	ctx := c.Request().Context()
 	for {
 		select {
 		case <-ctx.Done():
 			c.Logger().Info("Request context canceled:", ctx.Err())
+
+			return nil
+		case <-broadcast.ContextClose():
+			// TODO: Remove broascast from repository
+			c.Logger().Debug("Broadcast context canceled")
 
 			return nil
 		default:
@@ -75,12 +79,15 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 				if closeStatus := websocket.CloseStatus(err); closeStatus != -1 {
 					switch closeStatus {
 					case websocket.StatusNormalClosure:
+						broadcast.Close(nil)
 						return nil
 					case websocket.StatusGoingAway:
 						c.Logger().Info("Client is going away")
+						broadcast.Close(nil)
 						return nil
 					case websocket.StatusAbnormalClosure:
 						c.Logger().Info("Client is closing abnormally")
+						broadcast.Close(err)
 						return nil
 					}
 				}
@@ -103,13 +110,13 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					log.Printf("Error: %s", err)
 				}
 
-				broadcast, err := routerCtx.broadcastUsecase.Create(eventData.SDP, eventData.Title)
+				b, err := routerCtx.broadcastUsecase.Create(eventData.SDP, eventData.Title)
 				if err != nil {
 					// TODO: Handle the error properly
 				}
 
 				broadcastOut := &BroadcastCreateOut{
-					SDP: broadcast.LocalSDPSession,
+					SDP: b.LocalSDPSession,
 				}
 				wsEvent := WsEvent{Event: "new-broadcast", Data: broadcastOut}
 
@@ -118,6 +125,8 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					// TODO: Handle the error properly
 					return err
 				}
+
+				broadcast = b
 			case "new-viewer":
 				eventData := new(ViewerIn)
 

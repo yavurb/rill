@@ -10,7 +10,7 @@ func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (*domain.Broa
 	trackChan := make(chan *webrtc.TrackLocalStaticRTP)
 	localSDPSessionChan := make(chan string)
 
-	go signaling.HandleBroadcasterConnection(remoteSDPSession, trackChan, localSDPSessionChan)
+	ctx, cancel := signaling.HandleBroadcasterConnection(remoteSDPSession, trackChan, localSDPSessionChan)
 
 	broadcastLocalSDPSession := <-localSDPSessionChan
 
@@ -18,8 +18,11 @@ func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (*domain.Broa
 		Title:            broadcastTitle,
 		RemoteSDPSession: remoteSDPSession,
 		LocalSDPSession:  broadcastLocalSDPSession,
+		Ctx:              ctx,
+		Cancel:           cancel,
 	})
 	if err != nil {
+		cancel(err)
 		return nil, err
 	}
 

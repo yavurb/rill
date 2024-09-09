@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"sync"
 
 	"github.com/pion/webrtc/v4"
@@ -14,12 +15,33 @@ type BroadcastSession struct {
 	RemoteSDPSession string
 	LocalSDPSession  string
 	viewersMutex     sync.Mutex
+
+	// Internal fields for managing the lifecycle of the broadcast session.
+	ctx    context.Context
+	cancel context.CancelCauseFunc
 }
 
 // NOTE: Should this have a method for closing the broadcast session?
 type Viewer struct {
 	Events          chan<- string
 	LocalSDPSession string
+}
+
+func (b *BroadcastSession) SetCtx(ctx context.Context, cancel context.CancelCauseFunc) {
+	b.ctx = ctx
+	b.cancel = cancel
+}
+
+func (b *BroadcastSession) Close(cause error) {
+	b.cancel(cause)
+}
+
+func (b *BroadcastSession) ContextClose() <-chan struct{} {
+	if b.ctx == nil {
+		return nil
+	}
+
+	return b.ctx.Done()
 }
 
 func (b *BroadcastSession) AddViewer(viewer *Viewer) {
@@ -43,6 +65,8 @@ func (b *BroadcastSession) BroadcastEvent(event string) {
 }
 
 type BroadcastCreate struct {
+	Ctx              context.Context
+	Cancel           context.CancelCauseFunc
 	Title            string
 	RemoteSDPSession string
 	LocalSDPSession  string
