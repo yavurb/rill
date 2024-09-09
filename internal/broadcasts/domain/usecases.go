@@ -5,4 +5,5 @@ type BroadcastsUsecases interface {
 	GetBroadcasts() ([]*BroadcastSession, error)
 	Create(remoteSDPSession, broadcastTitle string) (*BroadcastSession, error)
 	Connect(remoteSDPSession, broadcastId string) (*Viewer, error)
+	Delete(id string) error
 }

@@ -8,7 +8,7 @@ import (
 func (uc *usecase) Connect(remoteSdp, broadcastId string) (*domain.Viewer, error) {
 	broadcast, err := uc.repository.GetBroadcast(broadcastId)
 	if err != nil {
-		return nil, domain.ErrNotFound
+		return nil, domain.ErrBroadcastNotFound
 	}
 
 	viewerLocalSDPChan := make(chan string)

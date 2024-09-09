@@ -57,10 +57,10 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 	}
 
 	defer ws.Close(websocket.StatusNormalClosure, "goodbye")
-	// TODO: Add a cleanup function to remove the publisher from the map when the connection is closed.
 
-	broadcast := new(domain.BroadcastSession)
 	ctx := c.Request().Context()
+	broadcast := new(domain.BroadcastSession)
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -68,9 +68,7 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 
 			return nil
 		case <-broadcast.ContextClose():
-			// TODO: Remove broascast from repository
 			c.Logger().Debug("Broadcast context canceled")
-
 			return nil
 		default:
 			event := new(WsEvent)
@@ -93,6 +91,8 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 				}
 
 				c.Logger().Error("Unexpected WebSocket Error:", err)
+
+				broadcast.Close(err)
 
 				return err
 			}
@@ -127,6 +127,7 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 				}
 
 				broadcast = b
+				defer routerCtx.broadcastUsecase.Delete(broadcast.ID)
 			case "new-viewer":
 				eventData := new(ViewerIn)
 

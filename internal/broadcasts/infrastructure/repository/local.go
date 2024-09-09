@@ -9,38 +9,45 @@ import (
 )
 
 type localRepository struct {
-	broadcasts      []*domain.BroadcastSession
+	broadcasts      map[string]*domain.BroadcastSession
 	broadcastsMutex sync.Mutex
 }
 
 const broadcastIdPrefix = "br"
 
 func NewLocalRepository() domain.BroadcastsRepository {
-	return &localRepository{}
+	return &localRepository{
+		broadcasts: make(map[string]*domain.BroadcastSession),
+	}
 }
 
 func (r *localRepository) GetBroadcast(id string) (*domain.BroadcastSession, error) {
-	for _, broadcast := range r.broadcasts {
-		if broadcast.ID == id {
-			return broadcast, nil
-		}
+	broadcast, ok := r.broadcasts[id]
+	if !ok {
+		return nil, errors.New("could not get broadcast")
 	}
 
-	return nil, errors.New("could not get broadcast")
+	return broadcast, nil
 }
 
 func (r *localRepository) GetBroadcasts() ([]*domain.BroadcastSession, error) {
-	return r.broadcasts, nil
+	broadcasts := make([]*domain.BroadcastSession, 0, len(r.broadcasts))
+
+	for _, broadcast := range r.broadcasts {
+		broadcasts = append(broadcasts, broadcast)
+	}
+
+	return broadcasts, nil
 }
 
 func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*domain.BroadcastSession, error) {
-	broadcastId, err := publicid.New(broadcastIdPrefix, 12)
+	broadcastID, err := publicid.New(broadcastIdPrefix, 12)
 	if err != nil {
 		return nil, err
 	}
 
 	broadcast_ := &domain.BroadcastSession{
-		ID:               broadcastId,
+		ID:               broadcastID,
 		Title:            broadcast.Title,
 		LocalSDPSession:  broadcast.LocalSDPSession,
 		RemoteSDPSession: broadcast.RemoteSDPSession,
@@ -50,7 +57,7 @@ func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*do
 	broadcast_.SetCtx(broadcast.Ctx, broadcast.Cancel)
 
 	r.broadcastsMutex.Lock()
-	r.broadcasts = append(r.broadcasts, broadcast_)
+	r.broadcasts[broadcastID] = broadcast_
 	r.broadcastsMutex.Unlock()
 
 	return broadcast_, nil
@@ -70,4 +77,12 @@ func (r *localRepository) UpdateBroadcast(id string, broadcast domain.BroadcastU
 	broadcast_.RemoteSDPSession = broadcast.RemoteSDPSession
 
 	return broadcast_, nil
+}
+
+func (r *localRepository) DeleteBroadcast(id string) error {
+	r.broadcastsMutex.Lock()
+	delete(r.broadcasts, id)
+	r.broadcastsMutex.Unlock()
+
+	return nil
 }
