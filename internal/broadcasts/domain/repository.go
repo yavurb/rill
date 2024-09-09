@@ -1,9 +1,9 @@
 package domain
 
-import "github.com/pion/webrtc/v4"
-
 type BroadcastsRepository interface {
 	GetBroadcast(id string) (*BroadcastSession, error)
 	GetBroadcasts() ([]*BroadcastSession, error)
-	CreateBroadcast(remoteSDPSession, localSDPSession, broadcastTitle string, track <-chan *webrtc.TrackLocalStaticRTP) (*BroadcastSession, error)
+	CreateBroadcast(broadcast BroadcastCreate) (*BroadcastSession, error)
+	UpdateBroadcast(id string, broadcast BroadcastUpdate) (*BroadcastSession, error)
+	DeleteBroadcast(id string) error
 }

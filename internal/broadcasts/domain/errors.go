@@ -3,6 +3,6 @@ package domain
 import "errors"
 
 var (
-	ErrUnknown  = errors.New("unknown error")
-	ErrNotFound = errors.New("broadcast not found")
+	ErrUnknown           = errors.New("unknown error")
+	ErrBroadcastNotFound = errors.New("broadcast not found")
 )

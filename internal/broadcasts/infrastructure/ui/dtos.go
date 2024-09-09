@@ -22,11 +22,16 @@ type BroadcastsOut struct {
 	Broadcasts []*BroadcastOut `json:"broadcasts"`
 }
 
-type BroadcastConnectParams struct {
-	BroadcastID string `param:"broadcastID" validate:"required"`
+type ViewerIn struct {
+	BroadcastID string `json:"broadcast_id" validate:"required"`
 	SDP         string `json:"sdp" validate:"required"`
 }
 
-type BroadcastConnectOut struct {
+type ViewerOut struct {
 	SDP string `json:"sdp"`
+}
+
+type WsEvent struct {
+	Data  any    `json:"data"`
+	Event string `json:"event"`
 }

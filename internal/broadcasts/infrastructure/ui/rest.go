@@ -1,28 +1,163 @@
 package ui
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"sync"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/labstack/echo/v4"
 	"github.com/yavurb/rill/internal/broadcasts/domain"
 )
 
-type broadcastsRouterCtx struct {
-	echo             *echo.Echo
-	broadcastUsecase domain.BroadcastsUsecases
-}
+type (
+	subscriber struct {
+		event chan string
+	}
+	publisher struct {
+		subscribers      map[*subscriber]struct{}
+		subscribersMutex sync.Mutex
+	}
+	broadcastsRouterCtx struct {
+		echo             *echo.Echo
+		broadcastUsecase domain.BroadcastsUsecases
+		publishers       map[string]*publisher
+	}
+)
 
 func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsecases) {
 	routerGroup := echo.Group("broadcasts")
 	routerCtx := &broadcastsRouterCtx{
-		echo,
-		broadcastUsecase,
+		echo:             echo,
+		broadcastUsecase: broadcastUsecase,
+		publishers:       make(map[string]*publisher),
 	}
 
+	routerGroup.GET("/ws", routerCtx.HandleWebsocket)
 	routerGroup.GET("", routerCtx.GetBroadcasts)
 	routerGroup.GET("/:id", routerCtx.GetBroadcast)
-	routerGroup.POST("", routerCtx.CreateBroadcast)
-	routerGroup.POST("/:broadcastID/join", routerCtx.Connect)
+}
+
+func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
+	ws, err := websocket.Accept(
+		c.Response(),
+		c.Request(),
+		&websocket.AcceptOptions{OriginPatterns: []string{
+			"localhost:*",
+			"rill.one",
+			"rill.lat",
+		}},
+	)
+	if err != nil {
+		c.Logger().Debug(err)
+		return HTTPError{Message: "Upgrade to websocket required"}.ErrUpgradeRequired()
+	}
+
+	defer ws.Close(websocket.StatusNormalClosure, "goodbye")
+
+	ctx := c.Request().Context()
+	broadcast := new(domain.BroadcastSession)
+
+	for {
+		select {
+		case <-ctx.Done():
+			c.Logger().Info("Request context canceled:", ctx.Err())
+
+			return nil
+		case <-broadcast.ContextClose():
+			c.Logger().Debug("Broadcast context canceled")
+			return nil
+		default:
+			event := new(WsEvent)
+			err := wsjson.Read(ctx, ws, event)
+			if err != nil {
+				if closeStatus := websocket.CloseStatus(err); closeStatus != -1 {
+					switch closeStatus {
+					case websocket.StatusNormalClosure:
+						broadcast.Close(nil)
+						return nil
+					case websocket.StatusGoingAway:
+						c.Logger().Info("Client is going away")
+						broadcast.Close(nil)
+						return nil
+					case websocket.StatusAbnormalClosure:
+						c.Logger().Info("Client is closing abnormally")
+						broadcast.Close(err)
+						return nil
+					}
+				}
+
+				c.Logger().Error("Unexpected WebSocket Error:", err)
+
+				broadcast.Close(err)
+
+				return err
+			}
+
+			c.Logger().Info("Received: ", event)
+
+			jsonEventData, _ := json.Marshal(event.Data)
+
+			switch event.Event {
+			case "new-broadcast":
+				eventData := new(BroadcastIn)
+
+				err = json.Unmarshal(jsonEventData, eventData)
+				if err != nil {
+					log.Printf("Error: %s", err)
+				}
+
+				b, err := routerCtx.broadcastUsecase.Create(eventData.SDP, eventData.Title)
+				if err != nil {
+					// TODO: Handle the error properly
+				}
+
+				broadcastOut := &BroadcastCreateOut{
+					SDP: b.LocalSDPSession,
+				}
+				wsEvent := WsEvent{Event: "new-broadcast", Data: broadcastOut}
+
+				err = wsjson.Write(ctx, ws, wsEvent)
+				if err != nil {
+					// TODO: Handle the error properly
+					return err
+				}
+
+				broadcast = b
+				defer routerCtx.broadcastUsecase.Delete(broadcast.ID)
+			case "new-viewer":
+				eventData := new(ViewerIn)
+
+				err = json.Unmarshal(jsonEventData, eventData)
+				if err != nil {
+					log.Printf("Error: %s", err)
+				}
+
+				viewer, err := routerCtx.broadcastUsecase.Connect(eventData.SDP, eventData.BroadcastID)
+				if err != nil {
+					// TODO: Handle the error properly
+				}
+
+				viewerOut := &ViewerOut{
+					SDP: viewer.LocalSDPSession,
+				}
+				wsEvent := WsEvent{Event: "new-viewer", Data: viewerOut}
+
+				err = wsjson.Write(ctx, ws, wsEvent)
+				if err != nil {
+					// TODO: Handle the error properly
+					return err
+				}
+			case "unsubscribe":
+			default:
+				// TODO: Handle the case when the event is not recognized. Should we send an error message to the client?
+				fmt.Println("No event found")
+			}
+		}
+	}
 }
 
 func (routerCtx *broadcastsRouterCtx) GetBroadcasts(c echo.Context) error {
@@ -67,54 +202,4 @@ func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, broadcastOut)
-}
-
-func (routerCtx *broadcastsRouterCtx) CreateBroadcast(c echo.Context) error {
-	requestBody := new(BroadcastIn)
-
-	if err := c.Bind(requestBody); err != nil {
-		return HTTPError{
-			Message: "broadcast sdp and title are required",
-		}.ErrUnprocessableEntity()
-	}
-
-	if err := c.Validate(requestBody); err != nil {
-		return HTTPError{Message: "broadcast sdp and title are required"}.ErrUnprocessableEntity()
-	}
-
-	broadcastLocalSDPSession, err := routerCtx.broadcastUsecase.Create(requestBody.SDP, requestBody.Title)
-	if err != nil {
-		return HTTPError{
-			Message: "could no create broadcast",
-		}.InternalServerError()
-	}
-
-	broadcastOut := &BroadcastCreateOut{
-		SDP: broadcastLocalSDPSession,
-	}
-
-	return c.JSON(http.StatusCreated, broadcastOut)
-}
-
-func (routerCtx *broadcastsRouterCtx) Connect(c echo.Context) error {
-	var connectParams BroadcastConnectParams
-
-	if err := c.Bind(&connectParams); err != nil {
-		return HTTPError{
-			Message: "broadcast sdp is required",
-		}.ErrUnprocessableEntity()
-	}
-
-	localSDP, err := routerCtx.broadcastUsecase.Connect(connectParams.SDP, connectParams.BroadcastID)
-	if err != nil {
-		return HTTPError{
-			Message: "broadcast not found",
-		}.NotFound()
-	}
-
-	sdpOut := &BroadcastConnectOut{
-		SDP: localSDP,
-	}
-
-	return c.JSON(http.StatusOK, sdpOut)
 }
