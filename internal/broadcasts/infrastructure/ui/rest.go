@@ -3,6 +3,7 @@ package ui
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -86,14 +87,23 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					case websocket.StatusAbnormalClosure:
 						c.Logger().Info("Client is closing abnormally")
 						broadcast.Close(err)
-						return nil
+						return err
+					default:
+						c.Logger().Infof("Client closed WebSocket with status: %d", closeStatus)
+						broadcast.Close(err)
+						return err
 					}
+				} else if err == io.EOF {
+					c.Logger().Info("Client closed the WebSocket connection")
+					broadcast.Close(err)
+					return err
 				}
 
-				c.Logger().Error("Unexpected WebSocket Error:", err)
+				c.Logger().Errorf("Unexpected WebSocket Error: %v", err)
 
-				// Skiping the error handling for now
-				// TODO: Send a message to the client that an error occurred
+				broadcast.Close(err)
+
+				return err
 			}
 
 			c.Logger().Info("Received: ", event)
