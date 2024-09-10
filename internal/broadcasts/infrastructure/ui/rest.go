@@ -92,9 +92,8 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 
 				c.Logger().Error("Unexpected WebSocket Error:", err)
 
-				broadcast.Close(err)
-
-				return err
+				// Skiping the error handling for now
+				// TODO: Send a message to the client that an error occurred
 			}
 
 			c.Logger().Info("Received: ", event)
