@@ -84,7 +84,7 @@ jobs:
           SEMVER: ${{ needs.git-release.outputs.semver }}
         run: |
           gcloud beta run deploy $SERVICE_NAME \
-            --memory 256Mi \
+            --memory 512Mi \
             --execution-environment gen1 \
             --image $REGION-docker.pkg.dev/$PROJECT_ID/docker-images/$SERVICE_NAME:$SEMVER.$GITHUB_SHA \
             --port $PORT \
