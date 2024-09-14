@@ -6,33 +6,49 @@ on:
         required: true
     outputs:
       semver:
-        value: ${{ jobs.release.outputs.semver }}
+        value: ${{ jobs.changelog.outputs.release_version }}
         description: semver from our release branch name
 
-# TODO: Replace the marvinpinto action with: https://github.com/marvinpinto/action-automatic-releases/pull/2#issuecomment-1817530497
 jobs:
-  release:
-    name: "Extract semver from release branch"
+  changelog:
+    name: Generate changelog
     runs-on: ubuntu-latest
     outputs:
-      semver: ${{ steps.semver.outputs.value }}
+      release_changelog: ${{ steps.git-cliff.outputs.content }}
+      release_version: ${{ steps.git-cliff.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Extract semver from release branch name
-        shell: bash
-        id: semver
+      - name: Get release type
+        id: release-type
         env:
           MESSAGE: "${{ github.event.head_commit.message }}"
         run: |
-          echo "value=$(./scripts/gittag.sh)" >> $GITHUB_OUTPUT
-      - uses: "marvinpinto/action-automatic-releases@latest"
+          echo "type=$(./scripts/releasetype.sh)" >> $GITHUB_OUTPUT
+
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
         with:
-          repo_token: "${{ secrets.github-token }}"
-          automatic_release_tag: "${{ steps.semver.outputs.value }}"
-          prerelease: false
-          draft: false
-          title: "${{ steps.semver.outputs.value }}"
+          config: cliff.toml
+          args: --verbose --unreleased --bump ${{ steps.release-type.outputs.type }}
+        env:
+          OUTPUT: CHANGELOG.md
+
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: changelog
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: ncipollo/release-action@v1
+        with:
+          allowUpdated: true
+          tag: ${{ needs.changelog.outputs.release_version }}
+          body: ${{ needs.changelog.outputs.release_changelog }}
