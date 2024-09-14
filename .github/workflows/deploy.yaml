@@ -92,6 +92,6 @@ jobs:
             --region $REGION \
             --max-instances $NUM_INSTANCES \
             --allow-unauthenticated \
-            --cpu-throttling \
+            --no-cpu-throttling \
             --cpu-boost \
             --set-env-vars "GO_ENV=prod"
