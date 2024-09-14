@@ -84,7 +84,7 @@ jobs:
           SEMVER: ${{ needs.git-release.outputs.semver }}
         run: |
           gcloud beta run deploy $SERVICE_NAME \
-            --memory 512Mi \
+            --memory 256Mi \
             --execution-environment gen1 \
             --image $REGION-docker.pkg.dev/$PROJECT_ID/docker-images/$SERVICE_NAME:$SEMVER.$GITHUB_SHA \
             --port $PORT \
@@ -92,6 +92,6 @@ jobs:
             --region $REGION \
             --max-instances $NUM_INSTANCES \
             --allow-unauthenticated \
-            --no-cpu-throttling \
+            --cpu-throttling \
             --cpu-boost \
             --set-env-vars "GO_ENV=prod"
