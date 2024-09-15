@@ -33,6 +33,10 @@ func (b *BroadcastSession) SetCtx(ctx context.Context, cancel context.CancelCaus
 }
 
 func (b *BroadcastSession) Close(cause error) {
+	if b.cancel == nil {
+		return
+	}
+
 	b.cancel(cause)
 }
 
