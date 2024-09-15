@@ -106,12 +106,11 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 				return err
 			}
 
-			c.Logger().Info("Received: ", event)
-
 			jsonEventData, _ := json.Marshal(event.Data)
 
 			switch event.Event {
 			case "new-broadcast":
+				c.Logger().Info("Received new-broadcast event")
 				eventData := new(BroadcastIn)
 
 				err = json.Unmarshal(jsonEventData, eventData)

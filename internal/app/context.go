@@ -22,9 +22,7 @@ func (appCtx *AppCtx) NewHttpRouter() *echo.Echo {
 	e.HideBanner = true
 	e.Validator = mods.NewAppValidator()
 
-	e.Use(middleware.Logger())
-	e.Use(middleware.RequestID())
-	e.Use(middleware.Recover())
+	e.Use(middleware.Logger(), middleware.RequestID(), middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{
 			"http://localhost:4321",
