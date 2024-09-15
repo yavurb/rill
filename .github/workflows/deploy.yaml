@@ -95,3 +95,4 @@ jobs:
             --cpu-throttling \
             --cpu-boost \
             --set-env-vars "GO_ENV=prod"
+            --timeout "60m"
