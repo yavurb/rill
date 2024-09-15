@@ -1,12 +1,14 @@
 package ui
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -61,7 +63,7 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 
 	ctx := c.Request().Context()
 	broadcast := new(domain.BroadcastSession)
-
+	routerCtx.keepAlive(ws, ctx)
 	for {
 		select {
 		case <-ctx.Done():
@@ -210,4 +212,25 @@ func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, broadcastOut)
+}
+
+func (routerCtx *broadcastsRouterCtx) keepAlive(ws *websocket.Conn, ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				err := ws.Ping(ctx)
+				if err != nil {
+					routerCtx.echo.Logger.Errorf("Error sending ping: %v", err)
+
+					return
+				}
+			}
+		}
+	}()
 }
