@@ -49,6 +49,6 @@ jobs:
         uses: actions/checkout@v4
       - uses: ncipollo/release-action@v1
         with:
-          allowUpdated: true
+          allowUpdates: true
           tag: ${{ needs.changelog.outputs.release_version }}
           body: ${{ needs.changelog.outputs.release_changelog }}

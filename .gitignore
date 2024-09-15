@@ -3,3 +3,9 @@
 # Environments
 .env
 .env.*
+
+# Temporary files
+.DS_Store
+
+# Build files/directories
+tmp

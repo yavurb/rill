@@ -42,12 +42,15 @@ func HandleBroadcasterConnection(
 		offer := webrtc.SessionDescription{}
 		Decode(broadcasterSDPChan, &offer)
 
+		ICEServers := []webrtc.ICEServer{
+			{URLs: []string{"stun:stun.l.google.com:19302"}},
+			{URLs: []string{"stun:stun1.l.google.com:19302"}},
+			{URLs: []string{"stun:stun2.l.google.com:19302"}},
+			{URLs: []string{"stun:stun3.l.google.com:19302"}},
+			{URLs: []string{"stun:stun4.l.google.com:19302"}},
+		}
 		peerConnectionConfig := webrtc.Configuration{
-			ICEServers: []webrtc.ICEServer{
-				{
-					URLs: []string{"stun:stun.l.google.com:19302"},
-				},
-			},
+			ICEServers: ICEServers,
 		}
 
 		m := &webrtc.MediaEngine{}
@@ -170,12 +173,15 @@ func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewe
 
 	fmt.Println("Local track available...")
 
+	ICEServers := []webrtc.ICEServer{
+		{URLs: []string{"stun:stun.l.google.com:19302"}},
+		{URLs: []string{"stun:stun1.l.google.com:19302"}},
+		{URLs: []string{"stun:stun2.l.google.com:19302"}},
+		{URLs: []string{"stun:stun3.l.google.com:19302"}},
+		{URLs: []string{"stun:stun4.l.google.com:19302"}},
+	}
 	peerConnectionConfig := webrtc.Configuration{
-		ICEServers: []webrtc.ICEServer{
-			{
-				URLs: []string{"stun:stun.l.google.com:19302"},
-			},
-		},
+		ICEServers: ICEServers,
 	}
 
 	fmt.Printf("I'm passign through here")
