@@ -46,15 +46,16 @@ func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*do
 		return nil, err
 	}
 
-	broadcast_ := &domain.BroadcastSession{
-		ID:               broadcastID,
-		Title:            broadcast.Title,
-		LocalSDPSession:  broadcast.LocalSDPSession,
-		RemoteSDPSession: broadcast.RemoteSDPSession,
-		Viewers:          make(map[*domain.Viewer]struct{}),
-	}
+	broadcastEventChanIn := make(chan domain.BroadcastEvent)
+	broadcastEventChanOut := make(chan domain.BroadcastEvent)
 
-	broadcast_.SetCtx(broadcast.Ctx, broadcast.Cancel)
+	broadcast_ := &domain.BroadcastSession{
+		ID:       broadcastID,
+		Title:    broadcast.Title,
+		EventIn:  broadcastEventChanIn,
+		EventOut: broadcastEventChanOut,
+		Viewers:  make(map[*domain.Viewer]struct{}),
+	}
 
 	r.broadcastsMutex.Lock()
 	r.broadcasts[broadcastID] = broadcast_
@@ -69,12 +70,9 @@ func (r *localRepository) UpdateBroadcast(id string, broadcast domain.BroadcastU
 		return nil, err
 	}
 
-	track := <-broadcast.Track
-
-	broadcast_.Track = track
-	broadcast_.Title = broadcast.Title
-	broadcast_.LocalSDPSession = broadcast.LocalSDPSession
-	broadcast_.RemoteSDPSession = broadcast.RemoteSDPSession
+	if broadcast.Title != "" {
+		broadcast_.Title = broadcast.Title
+	}
 
 	return broadcast_, nil
 }

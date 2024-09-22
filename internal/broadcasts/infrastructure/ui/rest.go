@@ -120,25 +120,72 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					log.Printf("Error: %s", err)
 				}
 
-				b, err := routerCtx.broadcastUsecase.Create(eventData.SDP, eventData.Title)
+				broadcast, err = routerCtx.broadcastUsecase.Create(eventData.Title)
 				if err != nil {
 					// TODO: Handle the error properly
 				}
 
-				broadcastOut := &BroadcastCreateOut{
-					SDP: b.LocalSDPSession,
+				go func() {
+				EventLoop:
+					for {
+						select {
+						case event := <-broadcast.ListenEvent():
+							log.Printf("Event in UI: %s\n", event.Event)
+							if event.Event == "candidate" {
+								wsEvent := WsEvent{Event: event.Event, Data: event.Data}
+								err := wsjson.Write(ctx, ws, wsEvent)
+								if err != nil {
+									c.Logger().Errorf("Error writing event: %v", err)
+									broadcast.Close(nil)
+									break EventLoop
+								}
+							}
+						case <-ctx.Done():
+							c.Logger().Info("Broadcast event loop canceled")
+							break EventLoop
+						}
+					}
+
+					c.Logger().Info("Broadcast event loop ended")
+				}()
+
+				defer broadcast.Close(nil)
+				defer routerCtx.broadcastUsecase.Delete(broadcast.ID)
+			case "ice-candidate":
+				c.Logger().Info("Received ice-candidate event")
+				eventData := parseEvent[CandidateIn](jsonEventData)
+
+				err := routerCtx.broadcastUsecase.SaveICECandidate(broadcast.ID, eventData.Candidate)
+				if err != nil {
+					c.Logger().Errorf("Error saving ICE candidate: %v", err)
+					broadcast.Close(err)
+					return err
 				}
-				wsEvent := WsEvent{Event: "new-broadcast", Data: broadcastOut}
+			case "offer":
+				c.Logger().Info("Received offer event")
+				eventData := parseEvent[OfferIn](jsonEventData)
+
+				sdp, err := routerCtx.broadcastUsecase.SaveOffer(broadcast.ID, eventData.SDP)
+				if err != nil {
+					c.Logger().Errorf("Error saving offer: %v", err)
+					broadcast.Close(err)
+					return err
+				}
+
+				c.Logger().Info("Sending answer event")
+				broadcastOut := &BroadcastCreateOut{
+					SDP: sdp,
+				}
+				wsEvent := WsEvent{Event: "answer", Data: broadcastOut}
 
 				err = wsjson.Write(ctx, ws, wsEvent)
 				if err != nil {
 					// TODO: Handle the error properly
 					return err
 				}
-
-				broadcast = b
-				defer routerCtx.broadcastUsecase.Delete(broadcast.ID)
 			case "new-viewer":
+				c.Logger().Info("Received new-viewer event")
+
 				eventData := new(ViewerIn)
 
 				err = json.Unmarshal(jsonEventData, eventData)
@@ -233,4 +280,15 @@ func (routerCtx *broadcastsRouterCtx) keepAlive(ws *websocket.Conn, ctx context.
 			}
 		}
 	}()
+}
+
+func parseEvent[T any](jsonEventData []byte) T {
+	var eventData T
+
+	err := json.Unmarshal(jsonEventData, &eventData)
+	if err != nil {
+		log.Printf("Error: %s", err)
+	}
+
+	return eventData
 }
