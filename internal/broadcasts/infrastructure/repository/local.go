@@ -47,12 +47,11 @@ func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*do
 	}
 
 	broadcast_ := &domain.BroadcastSession{
-		ID:        broadcastID,
-		Title:     broadcast.Title,
-		EventIn:   broadcast.BroadcastEventIn,
-		EventOut:  broadcast.BroadcastEventOut,
-		EventOut2: broadcast.BroadcastEventOut2,
-		Viewers:   make(map[*domain.Viewer]struct{}),
+		ID:       broadcastID,
+		Title:    broadcast.Title,
+		EventIn:  broadcast.BroadcastEventIn,
+		EventOut: broadcast.BroadcastEventOut,
+		Viewers:  make(map[*domain.Viewer]struct{}),
 	}
 
 	broadcast_.SetCtx(broadcast.Ctx, broadcast.Cancel)

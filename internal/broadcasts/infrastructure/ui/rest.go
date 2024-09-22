@@ -130,6 +130,7 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					for {
 						select {
 						case event := <-broadcast.ListenEvent():
+							log.Printf("Event in UI: %s\n", event.Event)
 							if event.Event == "candidate" {
 								wsEvent := WsEvent{Event: event.Event, Data: event.Data}
 								err := wsjson.Write(ctx, ws, wsEvent)

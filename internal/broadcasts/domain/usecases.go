@@ -1,5 +1,6 @@
 package domain
 
+// FIXME: Use cases should receive a context.Context to handle timeouts and cancellations.
 type BroadcastsUsecases interface {
 	Get(id string) (*BroadcastSession, error)
 	GetBroadcasts() ([]*BroadcastSession, error)

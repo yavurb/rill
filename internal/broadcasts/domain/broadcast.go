@@ -8,17 +8,17 @@ import (
 )
 
 type BroadcastEvent struct {
-	Data  any
-	Event string
+	Response chan<- string
+	Data     any
+	Event    string
 }
 type BroadcastSession struct {
-	ctx       context.Context
-	Track     *webrtc.TrackLocalStaticRTP
-	Viewers   map[*Viewer]struct{}
-	EventOut  <-chan BroadcastEvent
-	EventOut2 <-chan BroadcastEvent
-	EventIn   chan<- BroadcastEvent
-	cancel    context.CancelCauseFunc
+	ctx      context.Context
+	Track    *webrtc.TrackLocalStaticRTP
+	Viewers  map[*Viewer]struct{}
+	EventOut <-chan BroadcastEvent
+	EventIn  chan<- BroadcastEvent
+	cancel   context.CancelCauseFunc
 
 	ID    string
 	Title string
@@ -47,10 +47,6 @@ func (b *BroadcastSession) AddIceCandidate(candidate webrtc.ICECandidateInit) {
 
 func (b *BroadcastSession) ListenEvent() <-chan BroadcastEvent {
 	return b.EventOut
-}
-
-func (b *BroadcastSession) ListenEvent2() <-chan BroadcastEvent {
-	return b.EventOut2
 }
 
 func (b *BroadcastSession) SendEvent(event BroadcastEvent) {
@@ -94,12 +90,11 @@ func (b *BroadcastSession) BroadcastEvent(event string) {
 }
 
 type BroadcastCreate struct {
-	BroadcastEventIn   chan BroadcastEvent
-	BroadcastEventOut  chan BroadcastEvent
-	BroadcastEventOut2 chan BroadcastEvent
-	Ctx                context.Context
-	Cancel             context.CancelCauseFunc
-	Title              string
+	BroadcastEventIn  chan BroadcastEvent
+	BroadcastEventOut chan BroadcastEvent
+	Ctx               context.Context
+	Cancel            context.CancelCauseFunc
+	Title             string
 }
 
 type BroadcastUpdate struct {

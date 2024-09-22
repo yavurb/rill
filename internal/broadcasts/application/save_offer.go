@@ -12,22 +12,14 @@ func (uc *usecase) SaveOffer(id, sdp string) (string, error) {
 		return "", domain.ErrBroadcastNotFound
 	}
 
+	response := make(chan string)
 	broadcast.SendEvent(domain.BroadcastEvent{
-		Event: "offer",
-		Data:  sdp,
+		Event:    "offer",
+		Data:     sdp,
+		Response: response,
 	})
 
-	var answer string
-	for broadcastEvent := range broadcast.ListenEvent2() {
-		log.Printf("SaveOffer: %s\n", broadcastEvent.Event)
-		if broadcastEvent.Event != "answer" {
-			continue
-		}
-
-		answer = broadcastEvent.Data.(string)
-		break
-	}
-
+	answer := <-response
 	log.Println("Final answer", answer)
 	return answer, nil
 }

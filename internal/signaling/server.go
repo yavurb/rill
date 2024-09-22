@@ -34,9 +34,7 @@ func NewSignalingServer(e *echo.Echo) *serverCtx {
 func HandleBroadcasterConnection(
 	eventChanIn <-chan domain.BroadcastEvent,
 	eventChanOut chan<- domain.BroadcastEvent,
-	eventChanOut2 chan<- domain.BroadcastEvent,
 	trackChan chan<- *webrtc.TrackLocalStaticRTP,
-	broadcasterLocalSDPChan chan<- string,
 ) (context.Context, context.CancelCauseFunc) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 
@@ -139,6 +137,7 @@ func HandleBroadcasterConnection(
 				panic(marshalErr)
 			}
 
+			log.Println("Sending candidate...")
 			eventChanOut <- domain.BroadcastEvent{Event: "candidate", Data: string(outbound)}
 		})
 
@@ -183,7 +182,12 @@ func HandleBroadcasterConnection(
 						break Broadcast
 					}
 
-					eventChanOut2 <- domain.BroadcastEvent{Event: "answer", Data: Encode(answer)}
+					if event.Response == nil {
+						cancel(errors.New("response channel is nil"))
+						break Broadcast
+					}
+
+					event.Response <- Encode(answer)
 				}
 			}
 		}
