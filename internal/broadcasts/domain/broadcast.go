@@ -49,9 +49,6 @@ type BroadcastSession struct {
 	viewersMutex sync.Mutex
 }
 
-func (b *BroadcastSession) AddIceCandidate(candidate webrtc.ICECandidateInit) {
-}
-
 func (b *BroadcastSession) ListenEvent() <-chan BroadcastEvent {
 	return b.EventOut
 }
