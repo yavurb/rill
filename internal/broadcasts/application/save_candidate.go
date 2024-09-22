@@ -16,7 +16,7 @@ func (uc *usecase) SaveICECandidate(id string, candidate any) error {
 	var candidate_ webrtc.ICECandidateInit
 
 	jsonCandidate, _ := json.Marshal(candidate)
-	if err := json.Unmarshal(jsonCandidate, &candidate); err != nil {
+	if err := json.Unmarshal(jsonCandidate, &candidate_); err != nil {
 		return err
 	}
 

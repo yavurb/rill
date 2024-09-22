@@ -125,6 +125,29 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					// TODO: Handle the error properly
 				}
 
+				go func() {
+				EventLoop:
+					for {
+						select {
+						case event := <-broadcast.ListenEvent():
+							if event.Event == "candidate" {
+								wsEvent := WsEvent{Event: event.Event, Data: event.Data}
+								err := wsjson.Write(ctx, ws, wsEvent)
+								if err != nil {
+									c.Logger().Errorf("Error writing event: %v", err)
+									broadcast.Close(nil)
+									break EventLoop
+								}
+							}
+						case <-ctx.Done():
+							c.Logger().Info("Broadcast event loop canceled")
+							break EventLoop
+						}
+					}
+
+					c.Logger().Info("Broadcast event loop ended")
+				}()
+
 				defer broadcast.Close(nil)
 				defer routerCtx.broadcastUsecase.Delete(broadcast.ID)
 			case "ice-candidate":
@@ -148,10 +171,11 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					return err
 				}
 
+				c.Logger().Info("Sending answer event")
 				broadcastOut := &BroadcastCreateOut{
 					SDP: sdp,
 				}
-				wsEvent := WsEvent{Event: "new-broadcast", Data: broadcastOut}
+				wsEvent := WsEvent{Event: "answer", Data: broadcastOut}
 
 				err = wsjson.Write(ctx, ws, wsEvent)
 				if err != nil {

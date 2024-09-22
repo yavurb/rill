@@ -1,6 +1,8 @@
 package application
 
 import (
+	"log"
+
 	"github.com/yavurb/rill/internal/broadcasts/domain"
 )
 
@@ -15,11 +17,17 @@ func (uc *usecase) SaveOffer(id, sdp string) (string, error) {
 		Data:  sdp,
 	})
 
-	broadcastEvent := <-broadcast.ListenEvent()
+	var answer string
+	for broadcastEvent := range broadcast.ListenEvent2() {
+		log.Printf("SaveOffer: %s\n", broadcastEvent.Event)
+		if broadcastEvent.Event != "answer" {
+			continue
+		}
 
-	if broadcastEvent.Event != "answer" {
-		return "", domain.ErrBroadcastInvalidEvent
+		answer = broadcastEvent.Data.(string)
+		break
 	}
 
-	return broadcastEvent.Data.(string), nil
+	log.Println("Final answer", answer)
+	return answer, nil
 }

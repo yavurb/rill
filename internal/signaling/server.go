@@ -32,7 +32,9 @@ func NewSignalingServer(e *echo.Echo) *serverCtx {
 }
 
 func HandleBroadcasterConnection(
-	eventChan chan domain.BroadcastEvent,
+	eventChanIn <-chan domain.BroadcastEvent,
+	eventChanOut chan<- domain.BroadcastEvent,
+	eventChanOut2 chan<- domain.BroadcastEvent,
 	trackChan chan<- *webrtc.TrackLocalStaticRTP,
 	broadcasterLocalSDPChan chan<- string,
 ) (context.Context, context.CancelCauseFunc) {
@@ -137,7 +139,7 @@ func HandleBroadcasterConnection(
 				panic(marshalErr)
 			}
 
-			eventChan <- domain.BroadcastEvent{Data: "candidate", Event: string(outbound)}
+			eventChanOut <- domain.BroadcastEvent{Event: "candidate", Data: string(outbound)}
 		})
 
 	Broadcast:
@@ -146,8 +148,7 @@ func HandleBroadcasterConnection(
 			case <-ctx.Done():
 				log.Println("Broadcaster connection closed")
 				break Broadcast
-			case event := <-eventChan:
-				log.Println("Event received: ", event)
+			case event := <-eventChanIn:
 				switch event.Event {
 				case "candidate":
 					log.Println("Candidate received")
@@ -182,14 +183,7 @@ func HandleBroadcasterConnection(
 						break Broadcast
 					}
 
-					outbound, marshalErr := json.Marshal(answer)
-					if marshalErr != nil {
-						log.Println("Error marshaling answer: ", marshalErr)
-						cancel(marshalErr)
-						break Broadcast
-					}
-
-					eventChan <- domain.BroadcastEvent{Data: "answer", Event: Encode(outbound)}
+					eventChanOut2 <- domain.BroadcastEvent{Event: "answer", Data: Encode(answer)}
 				}
 			}
 		}
@@ -213,8 +207,6 @@ func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewe
 	peerConnectionConfig := webrtc.Configuration{
 		ICEServers: ICEServers,
 	}
-
-	fmt.Printf("I'm passign through here")
 
 	recvOnlyOffer := webrtc.SessionDescription{}
 	Decode(viewerSDPChan, &recvOnlyOffer)
