@@ -46,15 +46,16 @@ func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*do
 		return nil, err
 	}
 
+	broadcastEventChanIn := make(chan domain.BroadcastEvent)
+	broadcastEventChanOut := make(chan domain.BroadcastEvent)
+
 	broadcast_ := &domain.BroadcastSession{
 		ID:       broadcastID,
 		Title:    broadcast.Title,
-		EventIn:  broadcast.BroadcastEventIn,
-		EventOut: broadcast.BroadcastEventOut,
+		EventIn:  broadcastEventChanIn,
+		EventOut: broadcastEventChanOut,
 		Viewers:  make(map[*domain.Viewer]struct{}),
 	}
-
-	broadcast_.SetCtx(broadcast.Ctx, broadcast.Cancel)
 
 	r.broadcastsMutex.Lock()
 	r.broadcasts[broadcastID] = broadcast_
