@@ -47,11 +47,10 @@ func (r *localRepository) CreateBroadcast(broadcast domain.BroadcastCreate) (*do
 	}
 
 	broadcast_ := &domain.BroadcastSession{
-		ID:               broadcastID,
-		Title:            broadcast.Title,
-		LocalSDPSession:  broadcast.LocalSDPSession,
-		RemoteSDPSession: broadcast.RemoteSDPSession,
-		Viewers:          make(map[*domain.Viewer]struct{}),
+		ID:      broadcastID,
+		Title:   broadcast.Title,
+		Event:   broadcast.BroadcastEvent,
+		Viewers: make(map[*domain.Viewer]struct{}),
 	}
 
 	broadcast_.SetCtx(broadcast.Ctx, broadcast.Cancel)
@@ -69,12 +68,9 @@ func (r *localRepository) UpdateBroadcast(id string, broadcast domain.BroadcastU
 		return nil, err
 	}
 
-	track := <-broadcast.Track
-
-	broadcast_.Track = track
-	broadcast_.Title = broadcast.Title
-	broadcast_.LocalSDPSession = broadcast.LocalSDPSession
-	broadcast_.RemoteSDPSession = broadcast.RemoteSDPSession
+	if broadcast.Title != "" {
+		broadcast_.Title = broadcast.Title
+	}
 
 	return broadcast_, nil
 }

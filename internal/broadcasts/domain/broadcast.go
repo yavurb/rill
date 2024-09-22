@@ -7,18 +7,21 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
+type BroadcastEvent struct {
+	Data  any
+	Event string
+}
 type BroadcastSession struct {
-	Track            *webrtc.TrackLocalStaticRTP
-	Viewers          map[*Viewer]struct{}
-	ID               string
-	Title            string
-	RemoteSDPSession string
-	LocalSDPSession  string
-	viewersMutex     sync.Mutex
+	ctx     context.Context
+	Track   *webrtc.TrackLocalStaticRTP
+	Viewers map[*Viewer]struct{}
+	Event   chan BroadcastEvent
+	cancel  context.CancelCauseFunc
 
-	// Internal fields for managing the lifecycle of the broadcast session.
-	ctx    context.Context
-	cancel context.CancelCauseFunc
+	ID    string
+	Title string
+
+	viewersMutex sync.Mutex
 }
 
 // NOTE: Should this have a method for closing the broadcast session?
@@ -30,6 +33,22 @@ type Viewer struct {
 func (b *BroadcastSession) SetCtx(ctx context.Context, cancel context.CancelCauseFunc) {
 	b.ctx = ctx
 	b.cancel = cancel
+}
+
+func (b *BroadcastSession) SetTrack(trackChan <-chan *webrtc.TrackLocalStaticRTP) {
+	track := <-trackChan
+	b.Track = track
+}
+
+func (b *BroadcastSession) AddIceCandidate(candidate webrtc.ICECandidateInit) {
+}
+
+func (b *BroadcastSession) ListenEvent() <-chan BroadcastEvent {
+	return b.Event
+}
+
+func (b *BroadcastSession) SendEvent(event BroadcastEvent) {
+	b.Event <- event
 }
 
 func (b *BroadcastSession) Close(cause error) {
@@ -69,16 +88,12 @@ func (b *BroadcastSession) BroadcastEvent(event string) {
 }
 
 type BroadcastCreate struct {
-	Ctx              context.Context
-	Cancel           context.CancelCauseFunc
-	Title            string
-	RemoteSDPSession string
-	LocalSDPSession  string
+	BroadcastEvent chan BroadcastEvent
+	Ctx            context.Context
+	Cancel         context.CancelCauseFunc
+	Title          string
 }
 
 type BroadcastUpdate struct {
-	Track            <-chan *webrtc.TrackLocalStaticRTP
-	Title            string
-	RemoteSDPSession string
-	LocalSDPSession  string
+	Title string
 }

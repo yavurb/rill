@@ -5,13 +5,20 @@ type GetBroadcastParams struct {
 }
 
 type BroadcastIn struct {
-	SDP   string `json:"sdp" validate:"required"`
 	Title string `json:"title" validate:"required"`
 }
 
 type BroadcastOut struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
+}
+
+type CandidateIn struct {
+	Candidate any `json:"candidate" validate:"required"`
+}
+
+type OfferIn struct {
+	SDP string `json:"sdp" validate:"required"`
 }
 
 type BroadcastCreateOut struct {

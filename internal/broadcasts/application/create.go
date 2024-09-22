@@ -6,32 +6,25 @@ import (
 	"github.com/yavurb/rill/internal/signaling"
 )
 
-func (uc *usecase) Create(remoteSDPSession, broadcastTitle string) (*domain.BroadcastSession, error) {
+func (uc *usecase) Create(broadcastTitle string) (*domain.BroadcastSession, error) {
 	trackChan := make(chan *webrtc.TrackLocalStaticRTP)
 	localSDPSessionChan := make(chan string)
+	broadcastEventChan := make(chan domain.BroadcastEvent)
 
-	ctx, cancel := signaling.HandleBroadcasterConnection(remoteSDPSession, trackChan, localSDPSessionChan)
-
-	broadcastLocalSDPSession := <-localSDPSessionChan
+	ctx, cancel := signaling.HandleBroadcasterConnection(broadcastEventChan, trackChan, localSDPSessionChan)
 
 	broadcast, err := uc.repository.CreateBroadcast(domain.BroadcastCreate{
-		Title:            broadcastTitle,
-		RemoteSDPSession: remoteSDPSession,
-		LocalSDPSession:  broadcastLocalSDPSession,
-		Ctx:              ctx,
-		Cancel:           cancel,
+		Title:          broadcastTitle,
+		BroadcastEvent: broadcastEventChan,
+		Ctx:            ctx,
+		Cancel:         cancel,
 	})
 	if err != nil {
 		cancel(err)
 		return nil, err
 	}
 
-	go uc.repository.UpdateBroadcast(broadcast.ID, domain.BroadcastUpdate{
-		Title:            broadcast.Title,
-		RemoteSDPSession: broadcast.RemoteSDPSession,
-		LocalSDPSession:  broadcast.LocalSDPSession,
-		Track:            trackChan,
-	})
+	go broadcast.SetTrack(trackChan)
 
 	return broadcast, nil
 }

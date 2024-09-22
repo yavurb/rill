@@ -2,6 +2,7 @@ package signaling
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v4"
+	"github.com/yavurb/rill/internal/broadcasts/domain"
 )
 
 type (
@@ -30,7 +32,7 @@ func NewSignalingServer(e *echo.Echo) *serverCtx {
 }
 
 func HandleBroadcasterConnection(
-	broadcasterSDPChan string,
+	eventChan chan domain.BroadcastEvent,
 	trackChan chan<- *webrtc.TrackLocalStaticRTP,
 	broadcasterLocalSDPChan chan<- string,
 ) (context.Context, context.CancelCauseFunc) {
@@ -38,9 +40,6 @@ func HandleBroadcasterConnection(
 
 	go func() {
 		defer cancel(nil)
-
-		offer := webrtc.SessionDescription{}
-		Decode(broadcasterSDPChan, &offer)
 
 		ICEServers := []webrtc.ICEServer{
 			{URLs: []string{"stun:stun.l.google.com:19302"}},
@@ -128,48 +127,79 @@ func HandleBroadcasterConnection(
 			}
 		})
 
-		// Set the remote SessionDescription
-		err = peerConnection.SetRemoteDescription(offer)
-		if err != nil {
-			cancel(err)
-			return
+		peerConnection.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+			if candidate == nil {
+				return
+			}
+
+			outbound, marshalErr := json.Marshal(candidate.ToJSON())
+			if marshalErr != nil {
+				panic(marshalErr)
+			}
+
+			eventChan <- domain.BroadcastEvent{Data: "candidate", Event: string(outbound)}
+		})
+
+	Broadcast:
+		for {
+			select {
+			case <-ctx.Done():
+				log.Println("Broadcaster connection closed")
+				break Broadcast
+			case event := <-eventChan:
+				log.Println("Event received: ", event)
+				switch event.Event {
+				case "candidate":
+					log.Println("Candidate received")
+					if err := peerConnection.AddICECandidate(event.Data.(webrtc.ICECandidateInit)); err != nil {
+						log.Println("Error adding ICE candidate: ", err)
+						cancel(err)
+						break Broadcast
+					}
+				case "offer":
+					log.Println("Offer received")
+					offer := webrtc.SessionDescription{}
+					Decode(event.Data.(string), &offer)
+
+					// Set the remote SessionDescription
+					err = peerConnection.SetRemoteDescription(offer)
+					if err != nil {
+						cancel(err)
+						break Broadcast
+					}
+
+					// Create answer
+					answer, err := peerConnection.CreateAnswer(nil)
+					if err != nil {
+						cancel(err)
+						break Broadcast
+					}
+
+					// Sets the LocalDescription, and starts our UDP listeners
+					err = peerConnection.SetLocalDescription(answer)
+					if err != nil {
+						cancel(err)
+						break Broadcast
+					}
+
+					outbound, marshalErr := json.Marshal(answer)
+					if marshalErr != nil {
+						log.Println("Error marshaling answer: ", marshalErr)
+						cancel(marshalErr)
+						break Broadcast
+					}
+
+					eventChan <- domain.BroadcastEvent{Data: "answer", Event: Encode(outbound)}
+				}
+			}
 		}
-
-		// Create answer
-		answer, err := peerConnection.CreateAnswer(nil)
-		if err != nil {
-			cancel(err)
-			return
-		}
-
-		// Create channel that is blocked until ICE Gathering is complete
-		gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
-
-		// Sets the LocalDescription, and starts our UDP listeners
-		err = peerConnection.SetLocalDescription(answer)
-		if err != nil {
-			cancel(err)
-			return
-		}
-
-		// Block until ICE Gathering is complete, disabling trickle ICE
-		// we do this because we only can exchange one ng message
-		// in a production application you should exchange ICE Candidates via OnICECandidate
-		<-gatherComplete
-
-		// Get the LocalDescription and take it to base64 so we can paste in browser
-		broadcasterLocalSDPChan <- fmt.Sprint(Encode(*peerConnection.LocalDescription()))
-
-		// # Keep the goroutine alive
-		<-ctx.Done()
-		log.Println("Broadcaster connection closed")
 	}()
 
 	return ctx, cancel
 }
 
 func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewerLocalSDPChan chan<- string) {
-	localTrack := track
+	broadcastTrack := track
 
 	fmt.Println("Local track available...")
 
@@ -195,7 +225,7 @@ func HandleViewer(viewerSDPChan string, track *webrtc.TrackLocalStaticRTP, viewe
 		panic(err)
 	}
 
-	rtpSender, err := peerConnection.AddTrack(localTrack)
+	rtpSender, err := peerConnection.AddTrack(broadcastTrack)
 	if err != nil {
 		panic(err)
 	}
