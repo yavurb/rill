@@ -6,4 +6,8 @@ type BroadcastsRepository interface {
 	CreateBroadcast(broadcast BroadcastCreate) (*BroadcastSession, error)
 	UpdateBroadcast(id string, broadcast BroadcastUpdate) (*BroadcastSession, error)
 	DeleteBroadcast(id string) error
+
+	// Viewer related repository methods
+	GetViewer(id string) (*Viewer, error)
+	CreateViewer() (*Viewer, error)
 }

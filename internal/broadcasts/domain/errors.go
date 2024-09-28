@@ -6,4 +6,6 @@ var (
 	ErrUnknown               = errors.New("unknown error")
 	ErrBroadcastNotFound     = errors.New("broadcast not found")
 	ErrBroadcastInvalidEvent = errors.New("broadcast invalid event")
+
+	ErrViewerNotFound = errors.New("viewer not found")
 )

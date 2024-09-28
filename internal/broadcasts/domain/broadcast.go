@@ -29,12 +29,6 @@ type BroadcastEvent struct {
 	Event    string
 }
 
-// NOTE: Should this have a method for closing the broadcast session?
-type Viewer struct {
-	Events          chan<- string
-	LocalSDPSession string
-}
-
 type BroadcastSession struct {
 	ctx      context.Context
 	Track    *webrtc.TrackLocalStaticRTP
@@ -85,10 +79,10 @@ func (b *BroadcastSession) RemoveViewer(viewer *Viewer) {
 	b.viewersMutex.Unlock()
 }
 
-func (b *BroadcastSession) BroadcastEvent(event string) {
+func (b *BroadcastSession) SendEventToViewers(event ViewerEvent) {
 	b.viewersMutex.Lock()
 	for viewer := range b.Viewers {
-		viewer.Events <- event
+		viewer.EventIn <- event
 	}
 	b.viewersMutex.Unlock()
 }

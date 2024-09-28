@@ -42,6 +42,10 @@ func NewBroadcastsRouter(echo *echo.Echo, broadcastUsecase domain.BroadcastsUsec
 	routerGroup.GET("/ws", routerCtx.HandleWebsocket)
 	routerGroup.GET("", routerCtx.GetBroadcasts)
 	routerGroup.GET("/:id", routerCtx.GetBroadcast)
+
+	// Viewer routes
+	viewerGroup := routerGroup.Group("/viewers")
+	viewerGroup.GET("/ws", routerCtx.HandleViewerWebsocket)
 }
 
 func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
@@ -183,32 +187,6 @@ func (routerCtx *broadcastsRouterCtx) HandleWebsocket(c echo.Context) error {
 					// TODO: Handle the error properly
 					return err
 				}
-			case "new-viewer":
-				c.Logger().Info("Received new-viewer event")
-
-				eventData := new(ViewerIn)
-
-				err = json.Unmarshal(jsonEventData, eventData)
-				if err != nil {
-					log.Printf("Error: %s", err)
-				}
-
-				viewer, err := routerCtx.broadcastUsecase.Connect(eventData.SDP, eventData.BroadcastID)
-				if err != nil {
-					// TODO: Handle the error properly
-				}
-
-				viewerOut := &ViewerOut{
-					SDP: viewer.LocalSDPSession,
-				}
-				wsEvent := WsEvent{Event: "new-viewer", Data: viewerOut}
-
-				err = wsjson.Write(ctx, ws, wsEvent)
-				if err != nil {
-					// TODO: Handle the error properly
-					return err
-				}
-			case "unsubscribe":
 			default:
 				// TODO: Handle the case when the event is not recognized. Should we send an error message to the client?
 				fmt.Println("No event found")
@@ -259,6 +237,150 @@ func (routerCtx *broadcastsRouterCtx) GetBroadcast(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, broadcastOut)
+}
+
+func (routerCtx *broadcastsRouterCtx) HandleViewerWebsocket(c echo.Context) error {
+	ws, err := websocket.Accept(
+		c.Response(),
+		c.Request(),
+		&websocket.AcceptOptions{OriginPatterns: []string{
+			"localhost:*",
+			"rill.one",
+			"rill.lat",
+		}},
+	)
+	if err != nil {
+		c.Logger().Debug(err)
+		return HTTPError{Message: "Upgrade to websocket required"}.ErrUpgradeRequired()
+	}
+
+	defer ws.Close(websocket.StatusNormalClosure, "goodbye")
+
+	ctx := c.Request().Context()
+	viewer := new(domain.Viewer)
+	routerCtx.keepAlive(ws, ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			c.Logger().Info("Viewer - Request context canceled:", ctx.Err())
+
+			return nil
+		case <-viewer.ContextClose():
+			c.Logger().Debug("Viewer - context canceled")
+			return nil
+		default:
+			event := new(WsEvent)
+			err := wsjson.Read(ctx, ws, event)
+			if err != nil {
+				if closeStatus := websocket.CloseStatus(err); closeStatus != -1 {
+					switch closeStatus {
+					case websocket.StatusNormalClosure:
+						viewer.Close(nil)
+						return nil
+					case websocket.StatusGoingAway:
+						c.Logger().Info("Client is going away")
+						viewer.Close(nil)
+						return nil
+					case websocket.StatusAbnormalClosure:
+						c.Logger().Info("Client is closing abnormally")
+						viewer.Close(err)
+						return err
+					default:
+						c.Logger().Infof("Client closed WebSocket with status: %d", closeStatus)
+						viewer.Close(err)
+						return err
+					}
+				} else if err == io.EOF {
+					c.Logger().Info("Client closed the WebSocket connection")
+					viewer.Close(err)
+					return err
+				}
+
+				c.Logger().Errorf("Unexpected WebSocket Error: %v", err)
+
+				viewer.Close(err)
+
+				return err
+			}
+
+			jsonEventData, _ := json.Marshal(event.Data)
+
+			switch event.Event {
+			case "new-viewer":
+				c.Logger().Info("Received new-viewer event")
+				eventData := new(ViewerIn)
+
+				err = json.Unmarshal(jsonEventData, eventData)
+				if err != nil {
+					log.Printf("Error: %s", err)
+				}
+
+				viewer, err = routerCtx.broadcastUsecase.Connect(eventData.BroadcastID)
+				if err != nil {
+					// TODO: Handle the error properly
+				}
+
+				go func() {
+				EventLoop:
+					for {
+						select {
+						case event := <-viewer.ListenEvent():
+							if event.Event == "candidate" {
+								wsEvent := WsEvent{Event: event.Event, Data: event.Data}
+								err := wsjson.Write(ctx, ws, wsEvent)
+								if err != nil {
+									c.Logger().Errorf("Error writing event: %v", err)
+									viewer.Close(nil)
+									break EventLoop
+								}
+							}
+						case <-ctx.Done():
+							c.Logger().Info("Viewer event loop canceled")
+							break EventLoop
+						}
+					}
+
+					c.Logger().Info("Viewer event loop ended")
+				}()
+
+				defer viewer.Close(nil)
+				// TODO: Remove the viewer from the broadcast when the viewer closes the connection
+			case "ice-candidate":
+				c.Logger().Info("Received ice-candidate event")
+				eventData := parseEvent[CandidateIn](jsonEventData)
+
+				err := routerCtx.broadcastUsecase.SaveViewerICECandidate(viewer.ID, eventData.Candidate)
+				if err != nil {
+					c.Logger().Errorf("Error saving ICE candidate: %v", err)
+					viewer.Close(err)
+					return err
+				}
+			case "offer":
+				eventData := parseEvent[OfferIn](jsonEventData)
+
+				sdp, err := routerCtx.broadcastUsecase.SaveViewerOffer(viewer.ID, eventData.SDP)
+				if err != nil {
+					c.Logger().Errorf("Error saving offer: %v", err)
+					viewer.Close(err)
+					return err
+				}
+
+				viewerOut := &ViewerOut{
+					SDP: sdp,
+				}
+				wsEvent := WsEvent{Event: "answer", Data: viewerOut}
+
+				err = wsjson.Write(ctx, ws, wsEvent)
+				if err != nil {
+					// TODO: Handle the error properly
+					return err
+				}
+			default:
+				// TODO: Handle the case when the event is not recognized. Should we send an error message to the client?
+				fmt.Println("No event found")
+			}
+		}
+	}
 }
 
 func (routerCtx *broadcastsRouterCtx) keepAlive(ws *websocket.Conn, ctx context.Context) {
