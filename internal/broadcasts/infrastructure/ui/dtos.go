@@ -31,7 +31,6 @@ type BroadcastsOut struct {
 
 type ViewerIn struct {
 	BroadcastID string `json:"broadcast_id" validate:"required"`
-	SDP         string `json:"sdp" validate:"required"`
 }
 
 type ViewerOut struct {

@@ -7,6 +7,10 @@ type BroadcastsUsecases interface {
 	Create(broadcastTitle string) (*BroadcastSession, error)
 	SaveICECandidate(id string, candidate any) error
 	SaveOffer(id, sdp string) (string, error)
-	Connect(remoteSDPSession, broadcastId string) (*Viewer, error)
 	Delete(id string) error
+
+	// Viewer related use cases
+	Connect(broadcastId string) (*Viewer, error)
+	SaveViewerICECandidate(broadcastId string, candidate any) error
+	SaveViewerOffer(broadcastId, sdp string) (string, error)
 }

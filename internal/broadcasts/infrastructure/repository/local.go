@@ -10,14 +10,20 @@ import (
 
 type localRepository struct {
 	broadcasts      map[string]*domain.BroadcastSession
+	viewers         map[string]*domain.Viewer
 	broadcastsMutex sync.Mutex
+	viewersMutex    sync.Mutex
 }
 
-const broadcastIdPrefix = "br"
+const (
+	broadcastIdPrefix = "br"
+	viewerIdPrefix    = "vi"
+)
 
 func NewLocalRepository() domain.BroadcastsRepository {
 	return &localRepository{
 		broadcasts: make(map[string]*domain.BroadcastSession),
+		viewers:    make(map[string]*domain.Viewer),
 	}
 }
 
@@ -83,4 +89,35 @@ func (r *localRepository) DeleteBroadcast(id string) error {
 	r.broadcastsMutex.Unlock()
 
 	return nil
+}
+
+func (r *localRepository) GetViewer(id string) (*domain.Viewer, error) {
+	viewer, ok := r.viewers[id]
+	if !ok {
+		return nil, errors.New("could not get viewer")
+	}
+
+	return viewer, nil
+}
+
+func (r *localRepository) CreateViewer() (*domain.Viewer, error) {
+	viewerID, err := publicid.New(viewerIdPrefix, 12)
+	if err != nil {
+		return nil, err
+	}
+
+	viewerEventChanIn := make(chan domain.ViewerEvent)
+	viewerEventChanOut := make(chan domain.ViewerEvent)
+
+	viewer := &domain.Viewer{
+		ID:       viewerID,
+		EventIn:  viewerEventChanIn,
+		EventOut: viewerEventChanOut,
+	}
+
+	r.viewersMutex.Lock()
+	r.viewers[viewerID] = viewer
+	r.viewersMutex.Unlock()
+
+	return viewer, nil
 }
