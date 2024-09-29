@@ -13,4 +13,5 @@ type BroadcastsUsecases interface {
 	Connect(broadcastId string) (*Viewer, error)
 	SaveViewerICECandidate(broadcastId string, candidate any) error
 	SaveViewerOffer(broadcastId, sdp string) (string, error)
+	DeleteViewer(viewerId string) error
 }
