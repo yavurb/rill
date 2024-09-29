@@ -344,7 +344,7 @@ func (routerCtx *broadcastsRouterCtx) HandleViewerWebsocket(c echo.Context) erro
 				}()
 
 				defer viewer.Close(nil)
-				// TODO: Remove the viewer from the broadcast when the viewer closes the connection
+				defer routerCtx.broadcastUsecase.DeleteViewer(viewer.ID)
 			case "ice-candidate":
 				c.Logger().Info("Received ice-candidate event")
 				eventData := parseEvent[CandidateIn](jsonEventData)

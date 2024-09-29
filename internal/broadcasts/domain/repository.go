@@ -9,5 +9,6 @@ type BroadcastsRepository interface {
 
 	// Viewer related repository methods
 	GetViewer(id string) (*Viewer, error)
-	CreateViewer() (*Viewer, error)
+	CreateViewer(viewer ViewerCreate) (*Viewer, error)
+	DeleteViewer(id string) error
 }
