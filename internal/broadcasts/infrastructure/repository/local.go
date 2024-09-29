@@ -122,3 +122,11 @@ func (r *localRepository) CreateViewer(viewer domain.ViewerCreate) (*domain.View
 
 	return viewer_, nil
 }
+
+func (r *localRepository) DeleteViewer(id string) error {
+	r.viewersMutex.Lock()
+	delete(r.viewers, id)
+	r.viewersMutex.Unlock()
+
+	return nil
+}
