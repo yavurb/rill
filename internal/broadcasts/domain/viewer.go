@@ -10,6 +10,10 @@ import (
 	"github.com/yavurb/rill/internal/signaling"
 )
 
+type ViewerCreate struct {
+	BroadcastID string
+}
+
 type ViewerEvent struct {
 	Response chan<- string
 	Data     any
@@ -22,7 +26,8 @@ type Viewer struct {
 	EventIn  chan ViewerEvent
 	cancel   context.CancelCauseFunc
 
-	ID string
+	BroadcastID string
+	ID          string
 }
 
 func (v *Viewer) ListenEvent() <-chan ViewerEvent {

@@ -100,7 +100,7 @@ func (r *localRepository) GetViewer(id string) (*domain.Viewer, error) {
 	return viewer, nil
 }
 
-func (r *localRepository) CreateViewer() (*domain.Viewer, error) {
+func (r *localRepository) CreateViewer(viewer domain.ViewerCreate) (*domain.Viewer, error) {
 	viewerID, err := publicid.New(viewerIdPrefix, 12)
 	if err != nil {
 		return nil, err
@@ -109,15 +109,16 @@ func (r *localRepository) CreateViewer() (*domain.Viewer, error) {
 	viewerEventChanIn := make(chan domain.ViewerEvent)
 	viewerEventChanOut := make(chan domain.ViewerEvent)
 
-	viewer := &domain.Viewer{
-		ID:       viewerID,
-		EventIn:  viewerEventChanIn,
-		EventOut: viewerEventChanOut,
+	viewer_ := &domain.Viewer{
+		ID:          viewerID,
+		BroadcastID: viewer.BroadcastID,
+		EventIn:     viewerEventChanIn,
+		EventOut:    viewerEventChanOut,
 	}
 
 	r.viewersMutex.Lock()
-	r.viewers[viewerID] = viewer
+	r.viewers[viewerID] = viewer_
 	r.viewersMutex.Unlock()
 
-	return viewer, nil
+	return viewer_, nil
 }

@@ -10,7 +10,7 @@ func (uc *usecase) Connect(broadcastId string) (*domain.Viewer, error) {
 		return nil, domain.ErrBroadcastNotFound
 	}
 
-	viewer, err := uc.repository.CreateViewer()
+	viewer, err := uc.repository.CreateViewer(domain.ViewerCreate{BroadcastID: broadcastId})
 	if err != nil {
 		return nil, err
 	}
