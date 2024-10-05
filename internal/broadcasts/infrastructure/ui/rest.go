@@ -324,6 +324,9 @@ func (routerCtx *broadcastsRouterCtx) HandleViewerWebsocket(c echo.Context) erro
 				EventLoop:
 					for {
 						select {
+						case <-ctx.Done():
+							c.Logger().Info("Viewer event loop canceled")
+							break EventLoop
 						case event := <-viewer.ListenEvent():
 							if event.Event == "candidate" {
 								wsEvent := WsEvent{Event: event.Event, Data: event.Data}
@@ -334,9 +337,6 @@ func (routerCtx *broadcastsRouterCtx) HandleViewerWebsocket(c echo.Context) erro
 									break EventLoop
 								}
 							}
-						case <-ctx.Done():
-							c.Logger().Info("Viewer event loop canceled")
-							break EventLoop
 						}
 					}
 
