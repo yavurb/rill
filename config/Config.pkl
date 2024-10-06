@@ -7,8 +7,8 @@ import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.8.0#/go.pkl"
 /// ICE server configuration.
 class ICEServer {
   urls: Listing<String>(length > 0)
-  username: String?
-  credential: String?
+  username: String = ""
+  credential: Any = null
 }
 
 /// WebRTC configuration.

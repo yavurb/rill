@@ -15,7 +15,7 @@ func (uc *usecase) Connect(broadcastId string) (*domain.Viewer, error) {
 		return nil, err
 	}
 
-	viewer.HandleViewer(broadcast.Track)
+	viewer.HandleViewer(broadcast.Track, uc.config)
 	broadcast.AddViewer(viewer)
 
 	return viewer, nil

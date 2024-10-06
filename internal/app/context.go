@@ -36,7 +36,7 @@ func (app *App) NewHttpRouter() *echo.Echo {
 	e.Logger.SetLevel(log.DEBUG)
 
 	broadcastsRepository := repository.NewLocalRepository()
-	broadcastsUsecase := application.NewBroadcastUsecase(broadcastsRepository)
+	broadcastsUsecase := application.NewBroadcastUsecase(broadcastsRepository, app.config)
 	ui.NewBroadcastsRouter(e, broadcastsUsecase)
 
 	return e

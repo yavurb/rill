@@ -5,7 +5,7 @@ package config
 type ICEServer struct {
 	Urls []string `pkl:"urls"`
 
-	Username *string `pkl:"username"`
+	Username string `pkl:"username"`
 
-	Credential *string `pkl:"credential"`
+	Credential any `pkl:"credential"`
 }
