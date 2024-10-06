@@ -41,12 +41,19 @@ jobs:
       - name: Setup gcloud project
         run: gcloud config set project $PROJECT_ID
 
+      - name: Load secrets
+        id: load-secrets
+        uses: 1password/load-secrets-action@v2
+        with:
+          export-env: false
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          APP_CONFIG: "op://rill.prod.cicd/config/config.pkl"
+
       - name: Setup Environment
         run: |
           echo "${{ needs.git-release.outputs.semver }}" > ./cmd/rill/.version
-          cat cmd/rill/.version
-          echo "GO_ENV=prod" >> .env.prod
-          echo "PORT=$PORT" >> .env.prod
+          echo "${{ steps.load-secrets.outputs.APP_CONFIG }}" > ./config/production/config.pkl
 
       - name: Configure docker for gcloud
         run: gcloud auth configure-docker $REGION-docker.pkg.dev
