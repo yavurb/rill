@@ -5,12 +5,20 @@ import (
 	"context"
 
 	"github.com/apple/pkl-go/pkl"
+	"github.com/yavurb/rill/config/loglevel"
 )
 
+// Configuration for the application.
 type Config struct {
 	Host string `pkl:"host"`
 
 	Port uint16 `pkl:"port"`
+
+	Cors *Cors `pkl:"cors"`
+
+	WebRTC *WebRTC `pkl:"webRTC"`
+
+	LogLevel loglevel.LogLevel `pkl:"logLevel"`
 }
 
 // LoadFromPath loads the pkl module at the given path and evaluates it into a Config

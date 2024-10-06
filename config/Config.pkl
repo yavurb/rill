@@ -1,8 +1,39 @@
+/// Configuration for the application.
 @go.Package { name = "github.com/yavurb/rill/config" }
 module Config
 
 import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.8.0#/go.pkl"
 
+/// ICE server configuration.
+class ICEServer {
+  urls: Listing<String>(length > 0)
+  username: String?
+  credential: String?
+}
+
+/// WebRTC configuration.
+class WebRTC {
+  iceServers: Listing<ICEServer>(length > 0)
+}
+
+/// CORS configuration for the application.
+class Cors {
+    allowOrigins: Listing<String>(length > 0)
+    allowMethods: Listing<String>(length > 0)
+}
+
+/// The level of logging for the application.
+///
+/// - "error": Log only error level messages
+/// - "warn": Log error and warning messages
+/// - "info": Log all messages
+/// - "debug": Log all messages and debug information
+typealias LogLevel = "error"|"warn"|"info"|"debug"
+
 host: String
 port: UInt16(isBetween(8910, 8920))
+cors: Cors
+webRTC: WebRTC
+
+logLevel: LogLevel
 

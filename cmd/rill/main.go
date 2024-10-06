@@ -47,6 +47,7 @@ func loadConfig() *config.Config {
 		appConfig, err = config.LoadFromPath(context.Background(), confPath)
 		if err != nil {
 			fmt.Printf("Failed to load config from %s\n", confPath)
+			fmt.Println(err)
 		} else if appConfig != nil {
 			fmt.Printf("Loaded config from %s ✔︎\n", env)
 			break
