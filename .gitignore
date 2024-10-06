@@ -4,6 +4,11 @@
 .env
 .env.*
 
+# Configuration
+config/**/config.pkl
+!config/**/.gitkeep
+!config/Config.pkl
+
 # Temporary files
 .DS_Store
 

@@ -1,0 +1,8 @@
+@go.Package { name = "github.com/yavurb/rill/config" }
+module Config
+
+import "package://pkg.pkl-lang.org/pkl-go/pkl.golang@0.8.0#/go.pkl"
+
+host: String
+port: UInt16(isBetween(8910, 8920))
+

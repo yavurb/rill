@@ -4,19 +4,24 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"github.com/yavurb/rill/config"
 	"github.com/yavurb/rill/internal/app/mods"
 	"github.com/yavurb/rill/internal/broadcasts/application"
 	"github.com/yavurb/rill/internal/broadcasts/infrastructure/repository"
 	"github.com/yavurb/rill/internal/broadcasts/infrastructure/ui"
 )
 
-type AppCtx struct{}
-
-func NewAppContext() *AppCtx {
-	return &AppCtx{}
+type App struct {
+	config *config.Config
 }
 
-func (appCtx *AppCtx) NewHttpRouter() *echo.Echo {
+func NewApp(config *config.Config) *App {
+	return &App{
+		config: config,
+	}
+}
+
+func (appCtx *App) NewHttpRouter() *echo.Echo {
 	e := echo.New()
 
 	e.HideBanner = true
