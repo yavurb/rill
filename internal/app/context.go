@@ -21,7 +21,7 @@ func NewApp(config *config.Config) *App {
 	}
 }
 
-func (appCtx *App) NewHttpRouter() *echo.Echo {
+func (app *App) NewHttpRouter() *echo.Echo {
 	e := echo.New()
 
 	e.HideBanner = true
@@ -29,14 +29,8 @@ func (appCtx *App) NewHttpRouter() *echo.Echo {
 
 	e.Use(middleware.Logger(), middleware.RequestID(), middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{
-			"http://localhost:4321",
-			"https://rill.one",
-			"http://rill.one",
-			"https://rill.lat",
-			"http://rill.lat",
-		},
-		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowOrigins: app.config.Cors.AllowOrigins,
+		AllowMethods: app.config.Cors.AllowMethods,
 	}))
 
 	e.Logger.SetLevel(log.DEBUG)
