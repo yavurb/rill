@@ -15,10 +15,9 @@ RUN go build -o /app/rill ./cmd/rill/main.go
 
 FROM alpine:3.20
 
-ARG ENVIRONMENT=production
-ARG PKL_VERSION=0.26.3
-
 WORKDIR /app
+
+ARG PKL_VERSION=0.26.3
 
 RUN apk add --no-cache curl \
   && curl -L -o /usr/local/bin/pkl "https://github.com/apple/pkl/releases/download/${PKL_VERSION}/pkl-alpine-linux-amd64" \
@@ -26,6 +25,8 @@ RUN apk add --no-cache curl \
 
 RUN adduser -D rill && chown -R rill:rill /app
 USER rill
+
+ARG ENVIRONMENT=production
 
 COPY --chown=rill:rill --chmod=440 config/Config.pkl /app/config/
 COPY --chown=rill:rill --chmod=440 config/${ENVIRONMENT}/config.pkl /app/config/${ENVIRONMENT}/

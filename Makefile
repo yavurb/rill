@@ -13,8 +13,13 @@ build: write_version
 dev: write_version
 	air -c .air.toml
 
+docker_build: env ?= local
+docker_build: pkl_version ?= 0.26.3
 docker_build: test write_version
-	docker build . -t rill:$(latest_tag)
+	docker build . -t rill:$(latest_tag) --build-arg ENVIRONMENT=$(env) --build-arg PKL_VERSION=$(pkl_version)
+
+docker_run: docker_build
+	docker run -p 8910:8910 rill:$(latest_tag) --name rill
 
 test:
 	go test -v ./...
