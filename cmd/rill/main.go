@@ -2,30 +2,38 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
+	"strings"
 
 	"github.com/yavurb/rill/config"
 	"github.com/yavurb/rill/internal/app"
 )
 
-var Environments = []string{"local", "staging", "production"}
+var (
+	//go:embed .version
+	_version string
+
+	Version      string = strings.TrimSpace(_version)
+	Environments        = []string{"local", "staging", "production"}
+)
 
 func main() {
 	cfg := loadConfig()
 	app := app.NewApp(cfg)
 	httpServer := app.NewHttpRouter()
 
-	fmt.Print(`
+	fmt.Printf(`
  ██▀███   ██▓ ██▓     ██▓    
 ▓██ ▒ ██▒▓██▒▓██▒    ▓██▒    
 ▓██ ░▄█ ▒▒██▒▒██░    ▒██░    
 ▒██▀▀█▄  ░██░▒██░    ▒██░    
-░██▓ ▒██▒░██░░██████▒░██████▒
+░██▓ ▒██▒░██░░██████▒░██████▒.%s
 ░ ▒▓ ░▒▓░░▓  ░ ▒░▓  ░░ ▒░▓  ░
   ░▒ ░ ▒░ ▒ ░░ ░ ▒  ░░ ░ ▒  ░
   ░░   ░  ▒ ░  ░ ░     ░ ░   
    ░      ░      ░  ░    ░  ░
-`)
+`, Version)
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 
