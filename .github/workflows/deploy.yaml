@@ -53,7 +53,7 @@ jobs:
       - name: Setup Environment
         run: |
           echo "${{ needs.git-release.outputs.semver }}" > ./cmd/rill/.version
-          printf ${{ steps.load-secrets.outputs.APP_CONFIG }} > ./config/production/config.pkl
+          printf '${{ steps.load-secrets.outputs.APP_CONFIG }}' > ./config/production/config.pkl
 
       - name: Configure docker for gcloud
         run: gcloud auth configure-docker $REGION-docker.pkg.dev
