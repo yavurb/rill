@@ -3,6 +3,7 @@ module github.com/yavurb/rill
 go 1.23.0
 
 require (
+	github.com/apple/pkl-go v0.8.0
 	github.com/coder/websocket v1.8.12
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/matoous/go-nanoid/v2 v2.1.0
@@ -21,6 +22,8 @@ require (
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/stun/v3 v3.0.0 // indirect
 	github.com/pion/turn/v4 v4.0.0 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.3 // indirect
 )
 

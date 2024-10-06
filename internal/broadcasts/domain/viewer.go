@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/pion/webrtc/v4"
+	"github.com/yavurb/rill/config"
 	"github.com/yavurb/rill/internal/signaling"
 )
 
@@ -54,17 +55,21 @@ func (v *Viewer) ContextClose() <-chan struct{} {
 	return v.ctx.Done()
 }
 
-func (v *Viewer) HandleViewer(track *webrtc.TrackLocalStaticRTP) {
+func (v *Viewer) HandleViewer(track *webrtc.TrackLocalStaticRTP, config *config.Config) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	v.ctx = ctx
 	v.cancel = cancel
 
 	go func() {
-		ICEServers := []webrtc.ICEServer{
-			{URLs: []string{"stun:stun.l.google.com:19302"}},
-			{URLs: []string{"stun:stun1.l.google.com:19302"}},
-			{URLs: []string{"stun:stun2.l.google.com:19302"}},
+		ICEServers := []webrtc.ICEServer{}
+		for _, server := range config.WebRTC.IceServers {
+			ICEServers = append(ICEServers, webrtc.ICEServer{
+				URLs:       server.Urls,
+				Username:   server.Username,
+				Credential: server.Credential,
+			})
 		}
+
 		peerConnectionConfig := webrtc.Configuration{
 			ICEServers: ICEServers,
 		}

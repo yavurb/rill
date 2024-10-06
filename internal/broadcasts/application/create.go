@@ -12,7 +12,7 @@ func (uc *usecase) Create(broadcastTitle string) (*domain.BroadcastSession, erro
 		return nil, err
 	}
 
-	broadcast.MakeRTCConnection()
+	broadcast.MakeRTCConnection(uc.config)
 
 	return broadcast, nil
 }
