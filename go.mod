@@ -7,7 +7,7 @@ require (
 	github.com/coder/websocket v1.8.12
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/matoous/go-nanoid/v2 v2.1.0
-	github.com/pion/interceptor v0.1.30
+	github.com/pion/interceptor v0.1.37
 	github.com/pion/webrtc/v4 v4.0.0-beta.30
 )
 
