@@ -41,23 +41,23 @@ webRTC = new WebRTC {
 logLevel = read?("env:LOG_LEVEL")?.trim()?.toLowerCase() ?? "debug"
 ```
 
-[^Once the configuration file is ready, you can execute any command listed below.]
+> [!Info] Once the configuration file is ready, you can execute any command listed below.
 
 ## Commands :hammer:
 
 Rill uses a Makefile to manage its commands. You can run the following commands:
 
-> [!Note]
+> [!Warning]
 > The commands must be prefixed with `make`.
 
 | Command | Arguments | Action |
 |:--------------:|:---------------------------------------------:|:-----------------------------------------------:|
 | `run`          | -                                             | Run the server                                  |
-| `build`        | -                                             | Build the server                                |
+| `build`        | -                                             | Build the server into a binary                  |
 | `dev`          | -                                             | Run the server with hot-reloading               |
 | `test`         | -                                             | Run tests                                       |
-| `docker_build` | [env(local,staging,production)\|pkl_version\] | Build a Docker image                            |
-| `docker_run`   | inherited from `docker_build`                 | Run a Docker container                          |
+| `docker_build` | [env(local,staging,production)\|pkl_version\] | Build a Docker image of the server              |
+| `docker_run`   | inherited from `docker_build`                 | Build and run a Docker container of the server  |
 | `gen_config`   | -                                             | Generate the types from the configuration file  |
 
 
