@@ -41,7 +41,13 @@ webRTC = new WebRTC {
 logLevel = read?("env:LOG_LEVEL")?.trim()?.toLowerCase() ?? "debug"
 ```
 
-> [!Info] Once the configuration file is ready, you can execute any command listed below.
+> Once the configuration file is ready, you can execute any command listed below.
+
+### Quick note on Secrets
+
+Rill uses 1Password to store its secrets. The secrets are fetched using the `op` CLI tool. For more information, please refer to the [1Password CLI documentation](https://developer.1password.com/docs/cli).
+
+You can also see how we make use of `1Password` referring to `.github/workflows/deploy.yaml`.
 
 ## Commands :hammer:
 
@@ -60,5 +66,45 @@ Rill uses a Makefile to manage its commands. You can run the following commands:
 | `docker_run`   | inherited from `docker_build`                 | Build and run a Docker container of the server  |
 | `gen_config`   | -                                             | Generate the types from the configuration file  |
 
+## Project Structure :open_file_folder:
 
+Rill tries to follow the [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) principles. The project is divided into the following directories:
 
+```txt
+.
+├── cmd
+│   └── rill
+├── config
+│   ├── local
+│   ├── production
+│   └── staging
+├── internal
+│   ├── app
+│   ├── broadcasts
+│   │   ├── application
+│   │   ├── domain
+│   │   └── infrastructure
+│   │       ├── repository
+│   │       └── ui
+│   └── pkg
+│       └── publicid
+└── scripts
+```
+
+The three main directories are:
+
+- `cmd`: Contains the entry point to the application.
+- `internal`: Contains the application's business logic.
+- `config`: Contains the configuration files.
+
+Inside the `internal` directory, are define Rill's modules. Each module is divided into three subdirectories:
+
+- `application`: Contains the use cases.
+- `domain`: Contains the business logic.
+- `infrastructure`: Contains the implementation details. Here, the repository and the UI are defined.
+
+> [!Note]
+> The `app` module is a special module that contains the main application logic.
+> Here is defined the server definition and the application's configuration.
+>
+> The `pkg` module contains the public ID package. This package is used to generate unique public IDs.
