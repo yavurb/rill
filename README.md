@@ -1,6 +1,6 @@
 # Rill
 
-The HTTP/WS/Signaling Server for the [Rill](https://rill.one) Project.
+The HTTP/WS/Signaling Server for the [Rill](https://rill.one) Project. Rill is a platform that allows users to create and share interactive live streams.
 
 ## Configuration :wrench:
 
