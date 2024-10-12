@@ -38,6 +38,12 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: ">= 496.0.0"
+          install_components: "beta"
+
       - name: Setup gcloud project
         run: gcloud config set project $PROJECT_ID
 
@@ -82,6 +88,12 @@ jobs:
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: ">= 496.0.0"
+          install_components: "beta"
 
       - name: Setup gcloud project
         run: gcloud config set project $PROJECT_ID
