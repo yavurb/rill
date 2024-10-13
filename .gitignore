@@ -15,3 +15,7 @@ config/**/config.pkl
 
 # Build files/directories
 tmp
+
+# Coverage files
+coverage.out
+
