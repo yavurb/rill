@@ -5,43 +5,46 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 )
 
-// Allows compressing offer/answer to bypass terminal input limits.
-const compress = false
-
 // Encode encodes the input in base64
 // It can optionally zip the input before encoding
-func Encode(obj interface{}) string {
+func Encode(obj interface{}, compress bool) (string, error) {
 	b, err := json.Marshal(obj)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	if compress {
 		b = zip(b)
 	}
 
-	return base64.StdEncoding.EncodeToString(b)
+	return base64.StdEncoding.EncodeToString(b), nil
 }
 
 // Decode decodes the input from base64
 // It can optionally unzip the input after decoding
-func Decode(in string, obj interface{}) {
+func Decode(in string, obj interface{}, compress bool) error {
 	b, err := base64.StdEncoding.DecodeString(in)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error decoding base64")
+		return err
 	}
 
 	if compress {
+		fmt.Println("Unzipping")
 		b = unzip(b)
 	}
 
 	err = json.Unmarshal(b, obj)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error unmarshalling")
+		return err
 	}
+
+	return nil
 }
 
 func zip(in []byte) []byte {

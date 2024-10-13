@@ -129,7 +129,11 @@ func (v *Viewer) HandleViewer(track *webrtc.TrackLocalStaticRTP, config *config.
 				case "offer":
 					log.Println("Viewer - Offer received")
 					offer := webrtc.SessionDescription{}
-					utils.Decode(event.Data.(string), &offer)
+					err := utils.Decode(event.Data.(string), &offer, false)
+					if err != nil {
+						cancel(err)
+						break Viewer
+					}
 
 					// Set the remote SessionDescription
 					err = peerConnection.SetRemoteDescription(offer)
@@ -157,7 +161,14 @@ func (v *Viewer) HandleViewer(track *webrtc.TrackLocalStaticRTP, config *config.
 						break Viewer
 					}
 
-					event.Response <- utils.Encode(answer)
+					base64Answer, err := utils.Encode(answer, false)
+					if err != nil {
+						cancel(err)
+						break Viewer
+					}
+
+					event.Response <- base64Answer
+
 				}
 			}
 		}
