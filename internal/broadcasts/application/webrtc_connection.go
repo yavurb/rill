@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
-	"log"
 
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
@@ -17,14 +15,16 @@ import (
 )
 
 type webRTCConnectionUsecase struct {
-	config    *config.Config
 	broadcast *domain.BroadcastSession
+	config    *config.Config
+	logger    domain.Logger
 }
 
-func NewWebRTCConnectionUsecase(config *config.Config, broadcast *domain.BroadcastSession) *webRTCConnectionUsecase {
+func NewWebRTCConnectionUsecase(config *config.Config, broadcast *domain.BroadcastSession, logger domain.Logger) *webRTCConnectionUsecase {
 	return &webRTCConnectionUsecase{
 		config:    config,
 		broadcast: broadcast,
+		logger:    logger,
 	}
 }
 
@@ -88,9 +88,9 @@ func (uc *webRTCConnectionUsecase) MakeConnection() error {
 			return
 		}
 		defer func() {
-			log.Println("Closing peer connection...")
+			uc.logger.Info("Closing peer connection...")
 			if cErr := peerConnection.Close(); cErr != nil {
-				fmt.Printf("cannot close peerConnection: %v\n", cErr)
+				uc.logger.Errorf("cannot close peerConnection: %v\n", cErr)
 			}
 		}()
 
@@ -136,7 +136,7 @@ func (uc *webRTCConnectionUsecase) MakeConnection() error {
 				panic(marshalErr)
 			}
 
-			log.Println("Sending candidate...")
+			uc.logger.Info("Sending candidate...")
 			uc.broadcast.EventOut <- domain.BroadcastEvent{Event: "candidate", Data: string(outbound)}
 		})
 
@@ -144,19 +144,19 @@ func (uc *webRTCConnectionUsecase) MakeConnection() error {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("Broadcaster connection closed")
+				uc.logger.Info("Broadcaster connection closed")
 				break Broadcast
 			case event := <-uc.broadcast.EventIn:
 				switch event.Event {
 				case "candidate":
-					log.Println("Candidate received")
+					uc.logger.Info("Candidate received")
 					if err := peerConnection.AddICECandidate(event.Data.(webrtc.ICECandidateInit)); err != nil {
-						log.Println("Error adding ICE candidate: ", err)
+						uc.logger.Info("Error adding ICE candidate: ", err)
 						cancel(err)
 						break Broadcast
 					}
 				case "offer":
-					log.Println("Offer received")
+					uc.logger.Info("Offer received")
 					offer := webrtc.SessionDescription{}
 					err := utils.Decode(event.Data.(string), &offer, false)
 					if err != nil {

@@ -6,13 +6,15 @@ import (
 )
 
 type usecase struct {
-	config     *config.Config
 	repository domain.BroadcastsRepository
+	config     *config.Config
+	logger     domain.Logger
 }
 
-func NewBroadcastUsecase(repository domain.BroadcastsRepository, config *config.Config) domain.BroadcastsUsecases {
+func NewBroadcastUsecase(repository domain.BroadcastsRepository, config *config.Config, logger domain.Logger) domain.BroadcastsUsecases {
 	return &usecase{
 		config:     config,
 		repository: repository,
+		logger:     logger,
 	}
 }

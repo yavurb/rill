@@ -9,12 +9,14 @@ func (uc *usecase) Create(broadcastTitle string) (*domain.BroadcastSession, erro
 		Title: broadcastTitle,
 	})
 	if err != nil {
+		uc.logger.Errorf("failed to create broadcast: %v", err)
 		return nil, err
 	}
 
-	webRTCConnection := NewWebRTCConnectionUsecase(uc.config, broadcast)
+	webRTCConnection := NewWebRTCConnectionUsecase(uc.config, broadcast, uc.logger)
 	err = webRTCConnection.MakeConnection()
 	if err != nil {
+		uc.logger.Errorf("failed to make connection: %v", err)
 		return nil, err
 	}
 
