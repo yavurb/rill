@@ -13,7 +13,7 @@ import (
 	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v4"
 	"github.com/yavurb/rill/config"
-	"github.com/yavurb/rill/internal/signaling"
+	"github.com/yavurb/rill/internal/pkg/utils"
 )
 
 type BroadcastCreate struct {
@@ -224,7 +224,7 @@ func (b *BroadcastSession) MakeRTCConnection(config *config.Config) {
 				case "offer":
 					log.Println("Offer received")
 					offer := webrtc.SessionDescription{}
-					signaling.Decode(event.Data.(string), &offer)
+					utils.Decode(event.Data.(string), &offer)
 
 					// Set the remote SessionDescription
 					err = peerConnection.SetRemoteDescription(offer)
@@ -252,7 +252,7 @@ func (b *BroadcastSession) MakeRTCConnection(config *config.Config) {
 						break Broadcast
 					}
 
-					event.Response <- signaling.Encode(answer)
+					event.Response <- utils.Encode(answer)
 				}
 			}
 		}

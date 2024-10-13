@@ -8,7 +8,7 @@ import (
 
 	"github.com/pion/webrtc/v4"
 	"github.com/yavurb/rill/config"
-	"github.com/yavurb/rill/internal/signaling"
+	"github.com/yavurb/rill/internal/pkg/utils"
 )
 
 type ViewerCreate struct {
@@ -129,7 +129,7 @@ func (v *Viewer) HandleViewer(track *webrtc.TrackLocalStaticRTP, config *config.
 				case "offer":
 					log.Println("Viewer - Offer received")
 					offer := webrtc.SessionDescription{}
-					signaling.Decode(event.Data.(string), &offer)
+					utils.Decode(event.Data.(string), &offer)
 
 					// Set the remote SessionDescription
 					err = peerConnection.SetRemoteDescription(offer)
@@ -157,7 +157,7 @@ func (v *Viewer) HandleViewer(track *webrtc.TrackLocalStaticRTP, config *config.
 						break Viewer
 					}
 
-					event.Response <- signaling.Encode(answer)
+					event.Response <- utils.Encode(answer)
 				}
 			}
 		}
