@@ -14,26 +14,24 @@ import (
 	"github.com/yavurb/rill/internal/pkg/utils"
 )
 
-type broadcastConnectionUsecase struct {
-	broadcast *domain.BroadcastSession
-	config    *config.Config
-	logger    domain.Logger
+type BroadcastConnectionUsecase struct {
+	config *config.Config
+	logger domain.Logger
 }
 
-func NewBroadcastConnectionUsecase(config *config.Config, broadcast *domain.BroadcastSession, logger domain.Logger) *broadcastConnectionUsecase {
-	return &broadcastConnectionUsecase{
-		config:    config,
-		broadcast: broadcast,
-		logger:    logger,
+func NewBroadcastConnectionUsecase(config *config.Config, logger domain.Logger) *BroadcastConnectionUsecase {
+	return &BroadcastConnectionUsecase{
+		config: config,
+		logger: logger,
 	}
 }
 
-func (uc *broadcastConnectionUsecase) MakeConnection() error {
+func (uc *BroadcastConnectionUsecase) Connect(broadcast *domain.BroadcastSession) error {
 	ctx, cancel := context.WithCancelCause(context.Background())
-	uc.broadcast.SetContext(ctx, cancel)
+	broadcast.SetContext(ctx, cancel)
 
 	trackChan := make(chan *webrtc.TrackLocalStaticRTP)
-	go uc.broadcast.SetTrack(trackChan)
+	go broadcast.SetTrack(trackChan)
 
 	go func() {
 		defer cancel(nil)
@@ -137,7 +135,7 @@ func (uc *broadcastConnectionUsecase) MakeConnection() error {
 			}
 
 			uc.logger.Info("Sending candidate...")
-			uc.broadcast.EventOut <- domain.BroadcastEvent{Event: "candidate", Data: string(outbound)}
+			broadcast.EventOut <- domain.BroadcastEvent{Event: "candidate", Data: string(outbound)}
 		})
 
 	Broadcast:
@@ -146,7 +144,7 @@ func (uc *broadcastConnectionUsecase) MakeConnection() error {
 			case <-ctx.Done():
 				uc.logger.Info("Broadcaster connection closed")
 				break Broadcast
-			case event := <-uc.broadcast.EventIn:
+			case event := <-broadcast.EventIn:
 				switch event.Event {
 				case "candidate":
 					uc.logger.Info("Candidate received")

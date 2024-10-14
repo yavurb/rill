@@ -11,23 +11,21 @@ import (
 	"github.com/yavurb/rill/internal/pkg/utils"
 )
 
-type viewerConnectionUsecase struct {
-	viewer *domain.Viewer
+type ViewerConnectionUsecase struct {
 	config *config.Config
 	logger domain.Logger
 }
 
-func NewViewerConnectionUsecase(config *config.Config, viewer *domain.Viewer, logger domain.Logger) *viewerConnectionUsecase {
-	return &viewerConnectionUsecase{
+func NewViewerConnectionUsecase(config *config.Config, logger domain.Logger) *ViewerConnectionUsecase {
+	return &ViewerConnectionUsecase{
 		config: config,
-		viewer: viewer,
 		logger: logger,
 	}
 }
 
-func (uc *viewerConnectionUsecase) Connect(track *webrtc.TrackLocalStaticRTP) error {
+func (uc *ViewerConnectionUsecase) Connect(viewer *domain.Viewer, track *webrtc.TrackLocalStaticRTP) error {
 	ctx, cancel := context.WithCancelCause(context.Background())
-	uc.viewer.SetContext(ctx, cancel)
+	viewer.SetContext(ctx, cancel)
 
 	go func() {
 		ICEServers := []webrtc.ICEServer{}
@@ -77,7 +75,7 @@ func (uc *viewerConnectionUsecase) Connect(track *webrtc.TrackLocalStaticRTP) er
 			}
 
 			uc.logger.Info("Viewer - Sending candidate...")
-			uc.viewer.EventOut <- domain.ViewerEvent{Event: "candidate", Data: string(outbound)}
+			viewer.EventOut <- domain.ViewerEvent{Event: "candidate", Data: string(outbound)}
 		})
 
 	Viewer:
@@ -86,7 +84,7 @@ func (uc *viewerConnectionUsecase) Connect(track *webrtc.TrackLocalStaticRTP) er
 			case <-ctx.Done():
 				uc.logger.Info("Viewer connection closed")
 				break Viewer
-			case event := <-uc.viewer.EventIn:
+			case event := <-viewer.EventIn:
 				switch event.Event {
 				case "candidate":
 					uc.logger.Info("Viewer - Candidate received")

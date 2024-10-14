@@ -1,7 +1,6 @@
 package application
 
 import (
-	"github.com/yavurb/rill/internal/broadcasts/application/webrtc"
 	"github.com/yavurb/rill/internal/broadcasts/domain"
 )
 
@@ -16,8 +15,11 @@ func (uc *usecase) Connect(broadcastId string) (*domain.Viewer, error) {
 		return nil, err
 	}
 
-	webrtcConnection := webrtc.NewViewerConnectionUsecase(uc.config, viewer, uc.logger)
-	err = webrtcConnection.Connect(broadcast.Track)
+	err = uc.viewerUsecase.Connect(viewer, broadcast.Track)
+	if err != nil {
+		uc.logger.Errorf("failed to connect viewer: %v", err)
+		return nil, err
+	}
 
 	broadcast.AddViewer(viewer)
 

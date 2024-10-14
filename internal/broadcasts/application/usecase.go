@@ -6,15 +6,28 @@ import (
 )
 
 type usecase struct {
-	repository domain.BroadcastsRepository
-	config     *config.Config
-	logger     domain.Logger
+	repository       domain.BroadcastsRepository
+	broadcastUsecase domain.BroadcastConnectionUsecase
+	viewerUsecase    domain.ViewerConnectionUsecase
+	config           *config.Config
+	logger           domain.Logger
 }
 
-func NewBroadcastUsecase(repository domain.BroadcastsRepository, config *config.Config, logger domain.Logger) domain.BroadcastsUsecases {
+type BroadcastUsecaseParams struct {
+	Repository       domain.BroadcastsRepository
+	BroadcastUsecase domain.BroadcastConnectionUsecase
+	ViewerUsecase    domain.ViewerConnectionUsecase
+	Config           *config.Config
+	Logger           domain.Logger
+}
+
+// Update the NewBroadcastUsecase function to accept the new struct
+func NewBroadcastUsecase(params BroadcastUsecaseParams) domain.BroadcastsUsecases {
 	return &usecase{
-		config:     config,
-		repository: repository,
-		logger:     logger,
+		repository:       params.Repository,
+		broadcastUsecase: params.BroadcastUsecase,
+		viewerUsecase:    params.ViewerUsecase,
+		config:           params.Config,
+		logger:           params.Logger,
 	}
 }

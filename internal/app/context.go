@@ -7,6 +7,7 @@ import (
 	"github.com/yavurb/rill/config"
 	"github.com/yavurb/rill/internal/app/mods"
 	"github.com/yavurb/rill/internal/broadcasts/application"
+	"github.com/yavurb/rill/internal/broadcasts/application/webrtc"
 	"github.com/yavurb/rill/internal/broadcasts/infrastructure/repository"
 	"github.com/yavurb/rill/internal/broadcasts/infrastructure/ui"
 )
@@ -36,7 +37,16 @@ func (app *App) NewHttpRouter() *echo.Echo {
 	e.Logger.SetLevel(log.DEBUG)
 
 	broadcastsRepository := repository.NewLocalRepository()
-	broadcastsUsecase := application.NewBroadcastUsecase(broadcastsRepository, app.config, e.Logger)
+	broadcastConnectionUsecase := webrtc.NewBroadcastConnectionUsecase(app.config, e.Logger)
+	viewerConnectionUsecase := webrtc.NewViewerConnectionUsecase(app.config, e.Logger)
+	broadcastUsecaseParams := application.BroadcastUsecaseParams{
+		Repository:       broadcastsRepository,
+		Config:           app.config,
+		BroadcastUsecase: broadcastConnectionUsecase,
+		ViewerUsecase:    viewerConnectionUsecase,
+		Logger:           e.Logger,
+	}
+	broadcastsUsecase := application.NewBroadcastUsecase(broadcastUsecaseParams)
 	ui.NewBroadcastsRouter(e, broadcastsUsecase)
 
 	return e
