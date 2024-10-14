@@ -1,6 +1,7 @@
 package application
 
 import (
+	"github.com/yavurb/rill/internal/broadcasts/application/webrtc"
 	"github.com/yavurb/rill/internal/broadcasts/domain"
 )
 
@@ -13,7 +14,7 @@ func (uc *usecase) Create(broadcastTitle string) (*domain.BroadcastSession, erro
 		return nil, err
 	}
 
-	webRTCConnection := NewWebRTCConnectionUsecase(uc.config, broadcast, uc.logger)
+	webRTCConnection := webrtc.NewBroadcastConnectionUsecase(uc.config, broadcast, uc.logger)
 	err = webRTCConnection.MakeConnection()
 	if err != nil {
 		uc.logger.Errorf("failed to make connection: %v", err)

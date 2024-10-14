@@ -1,4 +1,4 @@
-package application
+package webrtc
 
 import (
 	"context"
@@ -14,21 +14,21 @@ import (
 	"github.com/yavurb/rill/internal/pkg/utils"
 )
 
-type webRTCConnectionUsecase struct {
+type broadcastConnectionUsecase struct {
 	broadcast *domain.BroadcastSession
 	config    *config.Config
 	logger    domain.Logger
 }
 
-func NewWebRTCConnectionUsecase(config *config.Config, broadcast *domain.BroadcastSession, logger domain.Logger) *webRTCConnectionUsecase {
-	return &webRTCConnectionUsecase{
+func NewBroadcastConnectionUsecase(config *config.Config, broadcast *domain.BroadcastSession, logger domain.Logger) *broadcastConnectionUsecase {
+	return &broadcastConnectionUsecase{
 		config:    config,
 		broadcast: broadcast,
 		logger:    logger,
 	}
 }
 
-func (uc *webRTCConnectionUsecase) MakeConnection() error {
+func (uc *broadcastConnectionUsecase) MakeConnection() error {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	uc.broadcast.SetContext(ctx, cancel)
 
