@@ -3,7 +3,7 @@ module github.com/yavurb/rill
 go 1.23.0
 
 require (
-	github.com/apple/pkl-go v0.8.1
+	github.com/apple/pkl-go v0.9.0
 	github.com/coder/websocket v1.8.12
 	github.com/google/go-cmp v0.6.0
 	github.com/labstack/echo/v4 v4.12.0
